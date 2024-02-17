@@ -13,9 +13,9 @@ then, you can use this library in python normally,
 ``` python
 import cspsa
 
-optimizer = SPSA()
+optimizer = cspsa.SPSA()
 
-sol = optimizer.run(fun=lambda x: x[0]**2 - (x[1] - 4)**2, guess=[4, 8])
+sol = optimizer.run(fun=lambda x: x[0]**2 + (x[1] - 4)**2, guess=[4, 8])
 
 print(sol)
 ```
