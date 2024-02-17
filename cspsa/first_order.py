@@ -5,14 +5,16 @@ from copy import copy
 from tqdm import tqdm
 from collections.abc import Callable, Iterable
 
-from .defaults import *
+from cspsa.defaults import DEFAULT_COMPLEX_PERTURBATIONS
+
+# from .defaults import *
 
 class SPSA:
     def __init__(self,
                  num_iter : int = DEFAULT_NUM_ITER,
                  gains : dict = DEFAULT_GAINS,
                  init_iter : int = 0,
-                 callback : Callable = None,
+                 callback : Callable = lambda i,x: None,
                  perturbations = DEFAULT_REAL_PERTURBATIONS,
                  ):
 
@@ -46,14 +48,13 @@ class SPSA:
 
         delta = bk * np.random.choice(self.pert, len(guess))
 
+        # Make update
         df = fun(guess + delta) - fun(guess - delta)
         grad = 0.5 * df / delta
 
         new_guess = guess - ak * grad
 
-        if self.callback is not None:
-            self.callback(self.iter, new_guess)
-
+        self.callback(self.iter, new_guess)
         self.iter += 1
 
         return new_guess
@@ -67,3 +68,9 @@ class SPSA:
             new_guess = self.step(fun, new_guess)
 
         return new_guess
+
+class CSPSA(SPSA):
+    def __init__(*args,
+                 perturbations=DEFAULT_COMPLEX_PERTURBATIONS,
+                 **kwargs):
+        super().__init__(*args, perturbations=perturbations, **kwargs)

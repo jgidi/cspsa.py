@@ -2,5 +2,4 @@
 
 from .defaults import *
 
-from .SPSA import SPSA
-from .CSPSA import CSPSA
+from .first_order import SPSA, CSPSA
