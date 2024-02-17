@@ -2,6 +2,10 @@
 Complex Simultaneous Perturbation Stochastic Approximation
 
 Minimization of real functions depending on many real or complex parameters.
+Based upon the original SPSA method, [Spall (1987)](https://ieeexplore.ieee.org/document/4789489), and some derivations presented in [Gidi et. al. (2023)](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.108.032409).
+
+
+**NOTE**: Currently only SPSA and CSPSA are implemented. Quantum-natural methods will come soon.
 
 # Installation
 
