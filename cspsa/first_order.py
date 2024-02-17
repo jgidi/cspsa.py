@@ -70,7 +70,17 @@ class SPSA:
         return new_guess
 
 class CSPSA(SPSA):
-    def __init__(*args,
-                 perturbations=DEFAULT_COMPLEX_PERTURBATIONS,
-                 **kwargs):
-        super().__init__(*args, perturbations=perturbations, **kwargs)
+    def __init__(self,
+                 num_iter : int = DEFAULT_NUM_ITER,
+                 gains : dict = DEFAULT_GAINS,
+                 init_iter : int = 0,
+                 callback : Callable = lambda i,x: None,
+                 perturbations = DEFAULT_COMPLEX_PERTURBATIONS,
+                 ):
+
+        super().__init__(num_iter = num_iter,
+                         gains = gains,
+                         init_iter = init_iter,
+                         callback = callback,
+                         perturbations = perturbations,
+                         )
