@@ -5,7 +5,7 @@ from copy import copy
 from tqdm import tqdm
 from collections.abc import Callable, Iterable
 
-from cspsa.defaults import DEFAULT_COMPLEX_PERTURBATIONS
+from .defaults import *
 
 # from .defaults import *
 
