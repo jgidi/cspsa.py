@@ -1,6 +1,8 @@
 # cspsa.py
 Complex Simultaneous Perturbation Stochastic Approximation
 
+Minimization of real functions depending on many real or complex parameters.
+
 # Installation
 
 You can install this package providing the Github link to pip. For example,
@@ -13,9 +15,13 @@ then, you can use this library in python normally,
 ``` python
 import cspsa
 
-optimizer = cspsa.SPSA()
+def f(x): # Function to minimize
+    return  x[0]**2 + (x[1] - 4)**2
 
-sol = optimizer.run(fun=lambda x: x[0]**2 + (x[1] - 4)**2, guess=[4, 8])
+guess = [12, 7] # Random value to start iterating from
+
+optimizer = cspsa.SPSA()
+sol = optimizer.run(f, guess)
 
 print(sol) # approx [0, 4]
 ```
