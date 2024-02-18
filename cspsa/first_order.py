@@ -50,7 +50,7 @@ class SPSA:
 
         # Make update
         df = fun(guess + delta) - fun(guess - delta)
-        grad = 0.5 * df / delta
+        grad = 0.5 * df / np.conj(delta)
 
         new_guess = guess - ak * grad
 
