@@ -24,6 +24,7 @@ class SPSA:
         self.iter = self.init_iter
         self.pert = perturbations
         self.callback = callback
+        self.stop = False
 
     def restart(self):
         self.iter = self.init_iter
@@ -54,7 +55,7 @@ class SPSA:
 
         new_guess = guess - ak * grad
 
-        self.callback(self.iter, new_guess)
+        self.stop = self.callback(self.iter, new_guess) is not None
         self.iter += 1
 
         return new_guess
@@ -66,6 +67,8 @@ class SPSA:
         iterator = range(self.init_iter, self.init_iter + self.num_iter)
         for _ in tqdm(iterator, disable=not progressbar):
             new_guess = self.step(fun, new_guess)
+            if self.stop:
+                break
 
         return new_guess
 
