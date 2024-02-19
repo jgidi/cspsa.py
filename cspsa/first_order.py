@@ -7,8 +7,6 @@ from collections.abc import Callable, Iterable
 
 from .defaults import *
 
-# from .defaults import *
-
 class SPSA:
     def __init__(self,
                  num_iter : int = DEFAULT_NUM_ITER,
