@@ -3,7 +3,7 @@
 import numpy as np
 from copy import copy
 from tqdm import tqdm
-from collections.abc import Callable, Iterable
+from typing import Callable, Sequence
 
 from .defaults import *
 
@@ -13,8 +13,8 @@ class SPSA:
                  gains : dict = DEFAULT_GAINS,
                  init_iter : int = 0,
                  callback : Callable = lambda i,x: None,
-                 perturbations = DEFAULT_REAL_PERTURBATIONS,
                  postprocessing : Callable = lambda x : x
+                 perturbations : Sequence = DEFAULT_REAL_PERTURBATIONS,
                  ):
 
         self.gains = copy(gains)
@@ -61,7 +61,7 @@ class SPSA:
 
         return new_guess
 
-    def run(self, fun : Callable, guess : Iterable,
+    def run(self, fun : Callable, guess : Sequence,
             progressbar : bool = False) -> np.ndarray:
         new_guess = np.copy(guess)
 
@@ -79,7 +79,7 @@ class CSPSA(SPSA):
                  gains : dict = DEFAULT_GAINS,
                  init_iter : int = 0,
                  callback : Callable = lambda i,x: None,
-                 perturbations = DEFAULT_COMPLEX_PERTURBATIONS,
+                 perturbations : Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
                  ):
 
         super().__init__(num_iter = num_iter,
