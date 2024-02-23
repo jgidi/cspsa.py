@@ -80,6 +80,7 @@ class CSPSA(SPSA):
                  init_iter : int = 0,
                  callback : Callable = lambda i,x: None,
                  perturbations : Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
+                 postprocessing : Callable = lambda x : x,
                  ):
 
         super().__init__(num_iter = num_iter,
@@ -87,4 +88,5 @@ class CSPSA(SPSA):
                          init_iter = init_iter,
                          callback = callback,
                          perturbations = perturbations,
+                         postprocessing = postprocessing,
                          )
