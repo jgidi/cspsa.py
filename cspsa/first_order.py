@@ -7,15 +7,17 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
+
 class SPSA:
-    def __init__(self,
-                 num_iter : int = DEFAULT_NUM_ITER,
-                 gains : dict = DEFAULT_GAINS,
-                 init_iter : int = 0,
-                 callback : Callable = lambda i,x: None,
-                 postprocessing : Callable = lambda x : x
-                 perturbations : Sequence = DEFAULT_REAL_PERTURBATIONS,
-                 ):
+    def __init__(
+        self,
+        num_iter: int = DEFAULT_NUM_ITER,
+        gains: dict = DEFAULT_GAINS,
+        init_iter: int = 0,
+        callback: Callable = lambda i, x: None,
+        postprocessing: Callable = lambda x: x,
+        perturbations: Sequence = DEFAULT_REAL_PERTURBATIONS,
+    ):
 
         self.gains = copy(gains)
         self.num_iter = num_iter
@@ -30,14 +32,14 @@ class SPSA:
         self.iter = self.init_iter
 
     def _stepsize_and_pert(self):
-        a = self.gains.get('a', DEFAULT_GAINS['a'])
-        A = self.gains.get('A', DEFAULT_GAINS['A'])
-        b = self.gains.get('b', DEFAULT_GAINS['b'])
-        s = self.gains.get('s', DEFAULT_GAINS['s'])
-        t = self.gains.get('t', DEFAULT_GAINS['t'])
+        a = self.gains.get("a", DEFAULT_GAINS["a"])
+        A = self.gains.get("A", DEFAULT_GAINS["A"])
+        b = self.gains.get("b", DEFAULT_GAINS["b"])
+        s = self.gains.get("s", DEFAULT_GAINS["s"])
+        t = self.gains.get("t", DEFAULT_GAINS["t"])
 
-        ak = a / (self.iter + 1 + A)**s
-        bk = b / (self.iter + 1)**t
+        ak = a / (self.iter + 1 + A) ** s
+        bk = b / (self.iter + 1) ** t
 
         return ak, bk
 
@@ -54,15 +56,16 @@ class SPSA:
         grad = 0.5 * df / np.conj(delta)
 
         new_guess = guess - ak * grad
-        new_guess = self.postprocessing( new_guess )
+        new_guess = self.postprocessing(new_guess)
 
         self.stop = self.callback(self.iter, new_guess) is not None
         self.iter += 1
 
         return new_guess
 
-    def run(self, fun : Callable, guess : Sequence,
-            progressbar : bool = False) -> np.ndarray:
+    def run(
+        self, fun: Callable, guess: Sequence, progressbar: bool = False
+    ) -> np.ndarray:
         new_guess = np.copy(guess)
 
         iterator = range(self.init_iter, self.init_iter + self.num_iter)
@@ -73,20 +76,23 @@ class SPSA:
 
         return new_guess
 
-class CSPSA(SPSA):
-    def __init__(self,
-                 num_iter : int = DEFAULT_NUM_ITER,
-                 gains : dict = DEFAULT_GAINS,
-                 init_iter : int = 0,
-                 callback : Callable = lambda i,x: None,
-                 perturbations : Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
-                 postprocessing : Callable = lambda x : x,
-                 ):
 
-        super().__init__(num_iter = num_iter,
-                         gains = gains,
-                         init_iter = init_iter,
-                         callback = callback,
-                         perturbations = perturbations,
-                         postprocessing = postprocessing,
-                         )
+class CSPSA(SPSA):
+    def __init__(
+        self,
+        num_iter: int = DEFAULT_NUM_ITER,
+        gains: dict = DEFAULT_GAINS,
+        init_iter: int = 0,
+        callback: Callable = lambda i, x: None,
+        postprocessing: Callable = lambda x: x,
+        perturbations: Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
+    ):
+
+        super().__init__(
+            num_iter=num_iter,
+            gains=gains,
+            init_iter=init_iter,
+            callback=callback,
+            perturbations=perturbations,
+            postprocessing=postprocessing,
+        )
