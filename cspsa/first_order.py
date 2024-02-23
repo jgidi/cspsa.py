@@ -16,6 +16,7 @@ class SPSA:
                  init_iter : int = 0,
                  callback : Callable = lambda i,x: None,
                  perturbations = DEFAULT_REAL_PERTURBATIONS,
+                 postprocessing : Callable = lambda x : x
                  ):
 
         self.gains = copy(gains)
@@ -25,6 +26,7 @@ class SPSA:
         self.pert = perturbations
         self.callback = callback
         self.stop = False
+        self.postprocessing = postprocessing
 
     def restart(self):
         self.iter = self.init_iter
@@ -54,6 +56,7 @@ class SPSA:
         grad = 0.5 * df / np.conj(delta)
 
         new_guess = guess - ak * grad
+        new_guess = self.postprocessing( new_guess )
 
         self.stop = self.callback(self.iter, new_guess) is not None
         self.iter += 1
