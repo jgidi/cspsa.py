@@ -2,4 +2,4 @@
 
 from .defaults import *
 
-from .instances import SPSA, CSPSA
+from .derived_optimizers import SPSA, CSPSA
