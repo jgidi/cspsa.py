@@ -109,6 +109,7 @@ class StochasticOptimizer:
         self,
         fun: Callable,
         guess: Sequence,
+        num_iter: int = None,
         progressbar: bool = False,
         initial_hessian=None,
         fidelity=None,
@@ -123,7 +124,10 @@ class StochasticOptimizer:
             else:
                 Hprev = 1 if self.scalar else np.eye(len(guess))
 
-        iterator = range(self.init_iter, self.init_iter + self.num_iter)
+        if num_iter is None:
+            num_iter = self.num_iter
+
+        iterator = range(self.init_iter, self.init_iter + num_iter)
         for _ in tqdm(iterator, disable=not progressbar):
             if self.second_order or self.quantum_natural:
                 new_guess, H = self.step(fun, new_guess, Hprev, fidelity)
