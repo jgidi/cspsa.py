@@ -13,7 +13,6 @@ from .defaults import *
 class StochasticOptimizer:
     def __init__(
         self,
-        num_iter: int = DEFAULT_NUM_ITER,
         gains: dict = DEFAULT_GAINS,
         init_iter: int = 0,
         callback: Callable = lambda self, x: None,
@@ -27,7 +26,6 @@ class StochasticOptimizer:
 
         self.gains = copy(gains)
         self.callback = callback
-        self.num_iter = num_iter
         self.init_iter = init_iter
         self.perturbations = perturbations
         self.postprocessing = postprocessing
@@ -82,9 +80,6 @@ class StochasticOptimizer:
         fidelity: Union[Callable, None] = None,
     ):
 
-        if self.iter_count() >= self.num_iter:
-            raise Exception("Maximum number of iterations achieved")
-
         preconditioned = self.second_order or self.quantum_natural
 
         if preconditioned:
@@ -109,7 +104,7 @@ class StochasticOptimizer:
         self,
         fun: Callable,
         guess: Sequence,
-        num_iter: int = None,
+        num_iter: int = DEFAULT_NUM_ITER,
         progressbar: bool = False,
         initial_hessian=None,
         fidelity=None,
@@ -124,8 +119,6 @@ class StochasticOptimizer:
             else:
                 Hprev = 1 if self.scalar else np.eye(len(guess))
 
-        if num_iter is None:
-            num_iter = self.num_iter
 
         iterator = range(self.init_iter, self.init_iter + num_iter)
         for _ in tqdm(iterator, disable=not progressbar):
