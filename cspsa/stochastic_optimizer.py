@@ -21,7 +21,7 @@ class StochasticOptimizer:
         scalar: bool = False,
         second_order: bool = False,
         quantum_natural: bool = False,
-        hessian_postprocess_method: str = "gidi",
+        hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
     ):
 
         self.gains = copy(gains)
