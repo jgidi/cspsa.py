@@ -82,7 +82,7 @@ class StochasticOptimizer:
         fidelity: Union[Callable, None] = None,
     ):
 
-        if self.iter >= self.init_iter + self.num_iter:
+        if self.iter_count() >= self.num_iter:
             raise Exception("Maximum number of iterations achieved")
 
         preconditioned = self.second_order or self.quantum_natural
@@ -141,12 +141,12 @@ def scalar_hessian_postprocess(
     self: "StochasticOptimizer",
     Hprev: float,
     H: float,
-    method: str = "gidi",
-    tol: float = 1e-3,
+    method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
+    tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
 ):
 
     k = self.iter
-    if method == "gidi":
+    if method == "Gidi":
         H = np.sqrt(H**2 + tol)
         H = (k * Hprev + H) / (k + 1)
     else:
@@ -160,15 +160,15 @@ def hessian_process(
     self: "StochasticOptimizer",
     H_old: np.ndarray,
     H: np.ndarray,
-    method: str = "gidi",
-    tol: float = 1e-3,
+    method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
+    tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
 ):
 
     k = self.iter
     I = np.eye(H.shape[0])
 
     H = (H + H.T.conj()) / 2
-    if method == "gidi":
+    if method == "Gidi":
         H = la.sqrtm(H @ H.T.conj() + tol * I)
         H = (k * H_old + H) / (k + 1)
     else:
