@@ -155,7 +155,7 @@ def scalar_hessian_postprocess(
     return H
 
 
-def hessian_process(
+def hessian_postprocess(
     self: "StochasticOptimizer",
     H_old: np.ndarray,
     H: np.ndarray,
@@ -245,7 +245,7 @@ def preconditioned_update(
         g = (ak / H) * g
     else:
         H = h / np.outer(delta.conj(), delta2)
-        H = scalar_hessian_postprocess(
+        H = hessian_postprocess(
             self, previous_hessian, H, self.hessian_postprocess_method
         )
         g = ak * la.solve(H, g, assume_a="her")
