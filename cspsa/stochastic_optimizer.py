@@ -55,9 +55,12 @@ class StochasticOptimizer:
 
     # TODO
     def _check_args(self):
-        errmsg = "Can't set both 'second_order' and 'quantum_natural' to True"
-        assert not(self.second_order and self.quantum_natural), errmsg
+        errmsg = "Can't set both 'second_order=True' and 'quantum_natural=True'"
+        assert not (self.second_order and self.quantum_natural), errmsg
 
+        errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
+        preconditioned = self.second_order or self.quantum_natural
+        assert not (self.scalar and (not preconditioned)), errmsg
 
     def _stepsize_and_pert(self):
         a = self.gains.get("a", DEFAULT_GAINS["a"])
