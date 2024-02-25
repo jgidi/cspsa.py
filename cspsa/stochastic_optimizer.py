@@ -117,16 +117,14 @@ class StochasticOptimizer:
         # Preconditioning
         if self.second_order or self.quantum_natural:
             if initial_hessian is not None:
-                Hprev = initial_hessian
+                H = initial_hessian
             else:
-                Hprev = 1 if self.scalar else np.eye(len(guess))
-
+                H = 1 if self.scalar else np.eye(len(guess))
 
         iterator = range(self.init_iter, self.init_iter + num_iter)
         for _ in tqdm(iterator, disable=not progressbar):
             if self.second_order or self.quantum_natural:
-                new_guess, H = self.step(fun, new_guess, Hprev, fidelity)
-                Hprev = np.copy(H)
+                new_guess, H = self.step(fun, new_guess, H, fidelity)
             else:
                 new_guess = self.step(fun, new_guess)
 
