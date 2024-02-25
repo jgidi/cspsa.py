@@ -9,16 +9,17 @@ from typing import Union, Callable, Sequence
 
 from .defaults import *
 
+
 def scalar_hessian_postprocess(
-        self : 'StochasticOptimizer',
-        Hprev: float,
-        H: float,
-        method: str = 'gidi',
-        tol: float = 1e-3
+    self: "StochasticOptimizer",
+    Hprev: float,
+    H: float,
+    method: str = "gidi",
+    tol: float = 1e-3,
 ):
 
     k = self.iter
-    if method == 'gidi':
+    if method == "gidi":
         H = np.sqrt(H**2 + tol)
         H = (k * Hprev + H) / (k + 1)
     else:
@@ -27,12 +28,13 @@ def scalar_hessian_postprocess(
 
     return H
 
+
 def hessian_process(
-        self : 'StochasticOptimizer',
-        H_old: np.ndarray,
-        H: np.ndarray,
-        method: str = "gidi",
-        tol: float = 1e-3,
+    self: "StochasticOptimizer",
+    H_old: np.ndarray,
+    H: np.ndarray,
+    method: str = "gidi",
+    tol: float = 1e-3,
 ):
 
     k = self.iter
@@ -48,7 +50,8 @@ def hessian_process(
 
     return H
 
-def first_order_update(self: 'StochasticOptimizer', fun, guess):
+
+def first_order_update(self: "StochasticOptimizer", fun, guess):
 
     ak, bk = self._stepsize_and_pert()
 
@@ -61,17 +64,18 @@ def first_order_update(self: 'StochasticOptimizer', fun, guess):
 
     return g
 
+
 def preconditioned_update(
-        self: 'StochasticOptimizer',
-        fun: Callable,
-        guess: np.ndarray,
-        previous_hessian: Union[np.ndarray, float, None] = None,
-        fidelity: Union[Callable, None] = None,
+    self: "StochasticOptimizer",
+    fun: Callable,
+    guess: np.ndarray,
+    previous_hessian: Union[np.ndarray, float, None] = None,
+    fidelity: Union[Callable, None] = None,
 ):
 
     ak, bk = self._stepsize_and_pert()
 
-    delta  = bk * np.random.choice(self.perturbations, len(guess))
+    delta = bk * np.random.choice(self.perturbations, len(guess))
     delta2 = bk * np.random.choice(self.perturbations, len(guess))
 
     # First order
@@ -83,8 +87,7 @@ def preconditioned_update(
 
     # Second order
     if self.second_order:
-        dfp = fun(guess + delta + delta2) \
-            - fun(guess - delta + delta2)
+        dfp = fun(guess + delta + delta2) - fun(guess - delta + delta2)
 
         self.function_eval_count += 2
 
@@ -96,10 +99,12 @@ def preconditioned_update(
         errmsg = "For Quantum Natural optimization, you must provide the fidelity"
         assert fidelity is not None, errmsg
 
-        dF =  fidelity(guess, guess + delta + delta2) \
-            - fidelity(guess, guess - delta + delta2) \
-            - fidelity(guess, guess + delta) \
+        dF = (
+            fidelity(guess, guess + delta + delta2)
+            - fidelity(guess, guess - delta + delta2)
+            - fidelity(guess, guess + delta)
             + fidelity(guess, guess - delta)
+        )
 
         self.fidelity_eval_count += 4
 
@@ -108,15 +113,18 @@ def preconditioned_update(
 
     # Apply conditioning
     if self.scalar:
-        H = scalar_hessian_postprocess(self, previous_hessian, h)
+        H = scalar_hessian_postprocess(
+            self, previous_hessian, h, self.hessian_postprocess_method
+        )
         g = (ak / H) * g
     else:
         H = h / np.outer(delta.conj(), delta2)
-        H = scalar_hessian_postprocess(self, previous_hessian, H)
-        g = ak * la.solve(H, g, assume_a='her')
+        H = scalar_hessian_postprocess(
+            self, previous_hessian, H, self.hessian_postprocess_method
+        )
+        g = ak * la.solve(H, g, assume_a="her")
 
     return g, H
-
 
 
 class StochasticOptimizer:
@@ -131,6 +139,7 @@ class StochasticOptimizer:
         scalar: bool = False,
         second_order: bool = False,
         quantum_natural: bool = False,
+        hessian_postprocess_method: str = "gidi",
     ):
 
         self.gains = copy(gains)
@@ -140,17 +149,14 @@ class StochasticOptimizer:
         self.perturbations = perturbations
         self.postprocessing = postprocessing
 
+        # Preconditioning
         self.scalar = scalar
         self.second_order = second_order
         self.quantum_natural = quantum_natural
-
+        self.hessian_postprocess_method = hessian_postprocess_method
 
         if self.second_order or self.quantum_natural:
             self.compute_update = preconditioned_update
-            if self.scalar:
-                self.hessian_postprocess = scalar_hessian_postprocess
-            else:
-                self.hessian_postprocess = hessian_process
         else:
             self.compute_update = first_order_update
 
@@ -185,12 +191,13 @@ class StochasticOptimizer:
 
         return ak, bk
 
-
-    def step(self,
-             fun: Callable,
-             guess: np.ndarray,
-             prev_hessian: Union[np.ndarray, None] = None,
-             ):
+    def step(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        previous_hessian: Union[np.ndarray, None] = None,
+        fidelity: Union[Callable, None] = None,
+    ):
 
         if self.iter >= self.init_iter + self.num_iter:
             raise Exception("Maximum number of iterations achieved")
@@ -198,7 +205,11 @@ class StochasticOptimizer:
         preconditioned = self.second_order or self.quantum_natural
 
         if preconditioned:
-            update, hessian = self.compute_update(fun, guess, previous_hessian=prev_hessian)
+            update, hessian = preconditioned_update(
+                self, fun, guess, previous_hessian, fidelity
+            )
+        else:
+            update = first_order_update(self, fun, guess)
 
         new_guess = guess - update
         new_guess = self.postprocessing(new_guess)
@@ -212,35 +223,33 @@ class StochasticOptimizer:
             return new_guess
 
     def run(
-        self, fun: Callable, guess: Sequence, progressbar: bool = False
+        self,
+        fun: Callable,
+        guess: Sequence,
+        progressbar: bool = False,
+        initial_hessian=None,
+        fidelity=None,
     ) -> np.ndarray:
+
         new_guess = np.copy(guess)
+
+        # Preconditioning
+        if self.second_order or self.quantum_natural:
+            if initial_hessian is not None:
+                Hprev = initial_hessian
+            else:
+                Hprev = 1 if self.scalar else np.eye(len(guess))
 
         iterator = range(self.init_iter, self.init_iter + self.num_iter)
         for _ in tqdm(iterator, disable=not progressbar):
-            new_guess = self.step(fun, new_guess)
+            if self.second_order or self.quantum_natural:
+                new_guess, H = self.step(fun, new_guess, Hprev, fidelity)
+                Hprev = np.copy(H)
+            else:
+                new_guess = self.step(fun, new_guess)
+
             if self.stop:
                 break
 
         return new_guess
 
-
-from functools import partial
-
-SPSA = partial(StochasticOptimizer, perturbations=DEFAULT_REAL_PERTURBATIONS)
-SPSA.__doc__ = """
-My docs
-"""
-
-
-CSPSA = partial(StochasticOptimizer, perturbations=DEFAULT_COMPLEX_PERTURBATIONS)
-CSPSA.__doc__ = """
-My docs
-"""
-
-
-# class CSPSA(SPSA):
-#     """
-#     Docs are here
-#     """
-#     __init__ = partial(SPSA.__init__, self=self, perturbations=DEFAULT_COMPLEX_PERTURBATIONS)
