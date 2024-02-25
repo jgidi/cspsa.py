@@ -10,123 +10,6 @@ from typing import Union, Callable, Sequence
 from .defaults import *
 
 
-def scalar_hessian_postprocess(
-    self: "StochasticOptimizer",
-    Hprev: float,
-    H: float,
-    method: str = "gidi",
-    tol: float = 1e-3,
-):
-
-    k = self.iter
-    if method == "gidi":
-        H = np.sqrt(H**2 + tol)
-        H = (k * Hprev + H) / (k + 1)
-    else:
-        H = (k * Hprev + H) / (k + 1)
-        H = np.abs(H) + tol
-
-    return H
-
-
-def hessian_process(
-    self: "StochasticOptimizer",
-    H_old: np.ndarray,
-    H: np.ndarray,
-    method: str = "gidi",
-    tol: float = 1e-3,
-):
-
-    k = self.iter
-    I = np.eye(H.shape[0])
-
-    H = (H + H.T.conj()) / 2
-    if method == "gidi":
-        H = la.sqrtm(H @ H.T.conj() + tol * I)
-        H = (k * H_old + H) / (k + 1)
-    else:
-        H = (k * H_old + H) / (k + 1)
-        H = la.sqrtm(H @ H.T.conj()) + tol * I
-
-    return H
-
-
-def first_order_update(self: "StochasticOptimizer", fun, guess):
-
-    ak, bk = self._stepsize_and_pert()
-
-    delta = bk * np.random.choice(self.perturbations, len(guess))
-    df = fun(guess + delta) - fun(guess - delta)
-
-    self.function_eval_count += 2
-
-    g = 0.5 * ak * df / delta.conj()
-
-    return g
-
-
-def preconditioned_update(
-    self: "StochasticOptimizer",
-    fun: Callable,
-    guess: np.ndarray,
-    previous_hessian: Union[np.ndarray, float, None] = None,
-    fidelity: Union[Callable, None] = None,
-):
-
-    ak, bk = self._stepsize_and_pert()
-
-    delta = bk * np.random.choice(self.perturbations, len(guess))
-    delta2 = bk * np.random.choice(self.perturbations, len(guess))
-
-    # First order
-    df = fun(guess + delta) - fun(guess - delta)
-    self.function_eval_count += 2
-
-    # Gradient estimator
-    g = 0.5 * df / delta.conj()
-
-    # Second order
-    if self.second_order:
-        dfp = fun(guess + delta + delta2) - fun(guess - delta + delta2)
-
-        self.function_eval_count += 2
-
-        # Hessian factor
-        h = 0.5 * (dfp - df)
-
-    # Quantum Natural
-    if self.quantum_natural:
-        errmsg = "For Quantum Natural optimization, you must provide the fidelity"
-        assert fidelity is not None, errmsg
-
-        dF = (
-            fidelity(guess, guess + delta + delta2)
-            - fidelity(guess, guess - delta + delta2)
-            - fidelity(guess, guess + delta)
-            + fidelity(guess, guess - delta)
-        )
-
-        self.fidelity_eval_count += 4
-
-        # Hessian factor
-        h = 0.25 * dF
-
-    # Apply conditioning
-    if self.scalar:
-        H = scalar_hessian_postprocess(
-            self, previous_hessian, h, self.hessian_postprocess_method
-        )
-        g = (ak / H) * g
-    else:
-        H = h / np.outer(delta.conj(), delta2)
-        H = scalar_hessian_postprocess(
-            self, previous_hessian, H, self.hessian_postprocess_method
-        )
-        g = ak * la.solve(H, g, assume_a="her")
-
-    return g, H
-
-
 class StochasticOptimizer:
     def __init__(
         self,
@@ -253,3 +136,119 @@ class StochasticOptimizer:
 
         return new_guess
 
+
+def scalar_hessian_postprocess(
+    self: "StochasticOptimizer",
+    Hprev: float,
+    H: float,
+    method: str = "gidi",
+    tol: float = 1e-3,
+):
+
+    k = self.iter
+    if method == "gidi":
+        H = np.sqrt(H**2 + tol)
+        H = (k * Hprev + H) / (k + 1)
+    else:
+        H = (k * Hprev + H) / (k + 1)
+        H = np.abs(H) + tol
+
+    return H
+
+
+def hessian_process(
+    self: "StochasticOptimizer",
+    H_old: np.ndarray,
+    H: np.ndarray,
+    method: str = "gidi",
+    tol: float = 1e-3,
+):
+
+    k = self.iter
+    I = np.eye(H.shape[0])
+
+    H = (H + H.T.conj()) / 2
+    if method == "gidi":
+        H = la.sqrtm(H @ H.T.conj() + tol * I)
+        H = (k * H_old + H) / (k + 1)
+    else:
+        H = (k * H_old + H) / (k + 1)
+        H = la.sqrtm(H @ H.T.conj()) + tol * I
+
+    return H
+
+
+def first_order_update(self: "StochasticOptimizer", fun, guess):
+
+    ak, bk = self._stepsize_and_pert()
+
+    delta = bk * np.random.choice(self.perturbations, len(guess))
+    df = fun(guess + delta) - fun(guess - delta)
+
+    self.function_eval_count += 2
+
+    g = 0.5 * ak * df / delta.conj()
+
+    return g
+
+
+def preconditioned_update(
+    self: "StochasticOptimizer",
+    fun: Callable,
+    guess: np.ndarray,
+    previous_hessian: Union[np.ndarray, float, None] = None,
+    fidelity: Union[Callable, None] = None,
+):
+
+    ak, bk = self._stepsize_and_pert()
+
+    delta = bk * np.random.choice(self.perturbations, len(guess))
+    delta2 = bk * np.random.choice(self.perturbations, len(guess))
+
+    # First order
+    df = fun(guess + delta) - fun(guess - delta)
+    self.function_eval_count += 2
+
+    # Gradient estimator
+    g = 0.5 * df / delta.conj()
+
+    # Second order
+    if self.second_order:
+        dfp = fun(guess + delta + delta2) - fun(guess - delta + delta2)
+
+        self.function_eval_count += 2
+
+        # Hessian factor
+        h = 0.5 * (dfp - df)
+
+    # Quantum Natural
+    if self.quantum_natural:
+        errmsg = "For Quantum Natural optimization, you must provide the fidelity"
+        assert fidelity is not None, errmsg
+
+        dF = (
+            fidelity(guess, guess + delta + delta2)
+            - fidelity(guess, guess - delta + delta2)
+            - fidelity(guess, guess + delta)
+            + fidelity(guess, guess - delta)
+        )
+
+        self.fidelity_eval_count += 4
+
+        # Hessian factor
+        h = -0.25 * dF
+
+    # Apply conditioning
+    if self.scalar:
+        H = scalar_hessian_postprocess(
+            self, previous_hessian, h, self.hessian_postprocess_method
+        )
+        g = (ak / H) * g
+    else:
+        H = h / np.outer(delta.conj(), delta2)
+        H = scalar_hessian_postprocess(
+            self, previous_hessian, H, self.hessian_postprocess_method
+        )
+        g = ak * la.solve(H, g, assume_a="her")
+
+    return g, H

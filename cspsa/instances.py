@@ -10,7 +10,6 @@ SPSA.__doc__ = """
 My docs
 """
 
-
 CSPSA = partial(StochasticOptimizer, perturbations=DEFAULT_COMPLEX_PERTURBATIONS)
 CSPSA.__doc__ = """
 My docs
