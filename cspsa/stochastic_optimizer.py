@@ -44,6 +44,7 @@ class StochasticOptimizer:
         self.restart()
         self._check_args()
 
+    @property
     def iter_count(self):
         return self.iter - self.init_iter
 
