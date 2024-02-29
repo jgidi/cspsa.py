@@ -78,6 +78,20 @@ class StochasticOptimizer:
 
         return ak, bk
 
+    def default_hessian(self, guess, hessian = None):
+        # If provided, return it identically
+        if hessian is not None:
+            return hessian
+
+        # If not provided, return identity with the right size
+        if self.scalar:
+            hessian = 1.0
+        else:
+            hessian = np.eye(len(guess))
+
+        return hessian
+
+    
     def step(
         self,
         fun: Callable,
@@ -89,6 +103,8 @@ class StochasticOptimizer:
         preconditioned = self.second_order or self.quantum_natural
 
         if preconditioned:
+            previous_hessian = self.default_hessian(guess, previous_hessian)
+
             update, hessian = preconditioned_update(
                 self, fun, guess, previous_hessian, fidelity
             )
