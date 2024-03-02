@@ -3,7 +3,7 @@
 import numpy as np
 from scipy import linalg as la
 
-from copy import copy
+from copy import copy, deepcopy
 from tqdm import tqdm
 from typing import Callable, Sequence
 
@@ -85,6 +85,17 @@ class CSPSA:
         bk = b / (self.iter + 1) ** t
 
         return ak, bk
+
+    def make_collector(self):
+        params = []
+
+        def wrapper(self, guess, old_cb=deepcopy(self.callback)):
+            params.append(guess)
+            old_cb(self, guess)
+
+        self.callback = wrapper
+
+        return params
 
     def default_hessian(self, guess, hessian=None) -> float | np.ndarray:
         # If provided, return it identically
