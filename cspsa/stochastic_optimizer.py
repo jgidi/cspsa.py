@@ -5,7 +5,7 @@ from scipy import linalg as la
 
 from copy import copy
 from tqdm import tqdm
-from typing import Union, Callable, Sequence
+from typing import Callable, Sequence
 
 from .defaults import *
 
