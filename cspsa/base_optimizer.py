@@ -9,14 +9,11 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
-
 def do_nothing(*args):
     pass
 
-
 def identity(x):
     return x
-
 
 class CSPSA:
     def __init__(
@@ -43,11 +40,6 @@ class CSPSA:
         self.second_order = second_order
         self.quantum_natural = quantum_natural
         self.hessian_postprocess_method = hessian_postprocess_method
-
-        if self.second_order or self.quantum_natural:
-            self.compute_update = preconditioned_update
-        else:
-            self.compute_update = first_order_update
 
         self.restart()
         self._check_args()
