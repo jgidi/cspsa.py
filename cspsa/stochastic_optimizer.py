@@ -78,7 +78,7 @@ class StochasticOptimizer:
 
         return ak, bk
 
-    def default_hessian(self, guess, hessian = None):
+    def default_hessian(self, guess, hessian = None) -> float | np.ndarray:
         # If provided, return it identically
         if hessian is not None:
             return hessian
@@ -91,14 +91,13 @@ class StochasticOptimizer:
 
         return hessian
 
-    
     def step(
         self,
         fun: Callable,
         guess: np.ndarray,
-        previous_hessian: Union[np.ndarray, None] = None,
-        fidelity: Union[Callable, None] = None,
-    ):
+        previous_hessian: np.ndarray | float | None = None,
+        fidelity: Callable | None = None,
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
 
         preconditioned = self.second_order or self.quantum_natural
 
@@ -130,7 +129,7 @@ class StochasticOptimizer:
         progressbar: bool = False,
         initial_hessian=None,
         fidelity=None,
-    ) -> np.ndarray:
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
 
         new_guess = np.copy(guess)
 
@@ -158,7 +157,7 @@ def scalar_hessian_postprocess(
     H: float,
     method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
     tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
-):
+) -> float:
 
     k = self.iter
     if method == "Gidi":
@@ -177,7 +176,7 @@ def hessian_postprocess(
     H: np.ndarray,
     method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
     tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
-):
+) -> np.ndarray:
 
     k = self.iter
     I = np.eye(H.shape[0])
@@ -211,9 +210,9 @@ def preconditioned_update(
     self: "StochasticOptimizer",
     fun: Callable,
     guess: np.ndarray,
-    previous_hessian: Union[np.ndarray, float, None] = None,
-    fidelity: Union[Callable, None] = None,
-):
+    previous_hessian: float | np.ndarray | None = None,
+    fidelity: Callable | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
 
     ak, bk = self._stepsize_and_pert()
 
