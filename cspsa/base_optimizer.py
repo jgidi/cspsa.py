@@ -9,11 +9,14 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
+
 def do_nothing(*args):
     pass
 
+
 def identity(x):
     return x
+
 
 class CSPSA:
     def __init__(
@@ -83,7 +86,7 @@ class CSPSA:
 
         return ak, bk
 
-    def default_hessian(self, guess, hessian = None) -> float | np.ndarray:
+    def default_hessian(self, guess, hessian=None) -> float | np.ndarray:
         # If provided, return it identically
         if hessian is not None:
             return hessian
