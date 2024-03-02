@@ -100,27 +100,11 @@ class CSPSA:
         fidelity: Callable | None = None,
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
 
-        preconditioned = self.second_order or self.quantum_natural
-
-        if preconditioned:
-            previous_hessian = self.default_hessian(guess, previous_hessian)
-
-            update, hessian = preconditioned_update(
-                self, fun, guess, previous_hessian, fidelity
-            )
+        first_order = not (self.second_order or self.quantum_natural)
+        if first_order:
+            return first_order_step(self, fun, guess)
         else:
-            update = first_order_update(self, fun, guess)
-
-        new_guess = guess - update
-        new_guess = self.postprocessing(new_guess)
-
-        self.callback(self, new_guess)
-        self.iter += 1
-
-        if preconditioned:
-            return new_guess, hessian
-        else:
-            return new_guess
+            return preconditioned_step(self, fun, guess, previous_hessian, fidelity)
 
     def run(
         self,
@@ -130,29 +114,30 @@ class CSPSA:
         progressbar: bool = False,
         initial_hessian=None,
         fidelity=None,
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    ) -> np.ndarray:
 
         new_guess = np.copy(guess)
+        iterator = range(self.init_iter, self.init_iter + num_iter)
+        iterator = tqdm(iterator, disable=not progressbar)
+
+        first_order = not (self.second_order or self.quantum_natural)
+        if first_order:
+            for _ in iterator:
+                new_guess = first_order_step(self, fun, new_guess)
+                if self.stop: break
 
         # Preconditioning
-        preconditioned = self.second_order or self.quantum_natural
-        if preconditioned:
+        else:
             H = self.default_hessian(guess, initial_hessian)
-
-        iterator = range(self.init_iter, self.init_iter + num_iter)
-        for _ in tqdm(iterator, disable=not progressbar):
-            if preconditioned:
-                new_guess, H = self.step(fun, new_guess, H, fidelity)
-            else:
-                new_guess = self.step(fun, new_guess)
-
-            if self.stop:
-                break
+            for _ in iterator:
+                new_guess, H = preconditioned_step(self, fun, new_guess, H, fidelity)
+                if self.stop: break
 
         return new_guess
 
-
-def first_order_update(self: "CSPSA", fun, guess):
+def first_order_step(self: "CSPSA",
+                     fun: Callable,
+                     guess: np.ndarray):
 
     ak, bk = self._stepsize_and_pert()
 
@@ -165,6 +150,30 @@ def first_order_update(self: "CSPSA", fun, guess):
 
     return g
 
+# =============== Preconditioning
+
+def preconditioned_step(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        previous_hessian: np.ndarray | None = None,
+        fidelity: Callable | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+
+    if previous_hessian is None:
+        previous_hessian = self.default_hessian(guess)
+
+    update, hessian = preconditioned_update(
+        self, fun, guess, previous_hessian, fidelity
+    )
+
+    new_guess = guess - update
+    new_guess = self.postprocessing(new_guess)
+
+    self.callback(self, new_guess)
+    self.iter += 1
+
+    return new_guess, hessian
 
 def preconditioned_update(
     self: "CSPSA",
