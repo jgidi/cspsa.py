@@ -52,17 +52,21 @@ class CSPSA:
         preconditioned = self.second_order or self.quantum_natural
         assert not (self.scalar and (not preconditioned)), errmsg
 
-    def callback(self, guess):
-        self.stop = self.outer_callback(guess) is not None
+    # Minimal callback action: Check for returned value and set self.stop
+    def _callback(self, *args):
+        self.stop = self.outer_callback(*args) is not None
 
-    def make_collector(self):
+    def callback(self, iter, guess):
+        self._callback(iter, guess)
+
+    def make_params_collector(self):
         params = []
 
-        def wrapper(self, guess):
+        def wrapper(self, iter, guess):
             params.append(guess)
-            self.stop = self.outer_callback(guess) is not None
+            self._callback(iter, guess)
 
-        self.callback = wrapper
+        self.callback : Callable = wrapper
 
         return params
 
