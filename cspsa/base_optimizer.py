@@ -89,24 +89,14 @@ class CSPSA:
 
         return params
 
-    def default_hessian(self, guess, hessian=None) -> float | np.ndarray:
-        # If provided, return it identically
-        if hessian is not None:
-            return hessian
-
-        # If not provided, return identity with the right size
-        if self.scalar:
-            hessian = 1.0
-        else:
-            hessian = np.eye(len(guess))
-
-        return hessian
+    def default_hessian(self, guess) -> np.ndarray:
+        return np.eye(len(guess))
 
     def step(
         self,
         fun: Callable,
         guess: np.ndarray,
-        previous_hessian: np.ndarray | float | None = None,
+        previous_hessian: np.ndarray | None = None,
         fidelity: Callable | None = None,
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
 
@@ -162,47 +152,6 @@ class CSPSA:
         return new_guess
 
 
-def scalar_hessian_postprocess(
-    self: "CSPSA",
-    Hprev: float,
-    H: float,
-    method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
-    tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
-) -> float:
-
-    k = self.iter
-    if method == "Gidi":
-        H = np.sqrt(H**2 + tol)
-        H = (k * Hprev + H) / (k + 1)
-    else:
-        H = (k * Hprev + H) / (k + 1)
-        H = np.abs(H) + tol
-
-    return H
-
-
-def hessian_postprocess(
-    self: "CSPSA",
-    H_old: np.ndarray,
-    H: np.ndarray,
-    method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
-    tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
-) -> np.ndarray:
-
-    k = self.iter
-    I = np.eye(H.shape[0])
-
-    H = (H + H.T.conj()) / 2
-    if method == "Gidi":
-        H = la.sqrtm(H @ H.T.conj() + tol * I)
-        H = (k * H_old + H) / (k + 1)
-    else:
-        H = (k * H_old + H) / (k + 1)
-        H = la.sqrtm(H @ H.T.conj()) + tol * I
-
-    return H
-
-
 def first_order_update(self: "CSPSA", fun, guess):
 
     ak, bk = self._stepsize_and_pert()
@@ -221,7 +170,7 @@ def preconditioned_update(
     self: "CSPSA",
     fun: Callable,
     guess: np.ndarray,
-    previous_hessian: float | np.ndarray | None = None,
+    previous_hessian: np.ndarray,
     fidelity: Callable | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
 
@@ -265,15 +214,37 @@ def preconditioned_update(
 
     # Apply conditioning
     if self.scalar:
-        H = scalar_hessian_postprocess(
-            self, previous_hessian, h, self.hessian_postprocess_method
-        )
-        g = (ak / H) * g
+        H = np.array([[ h ]])
     else:
         H = h / np.outer(delta.conj(), delta2)
-        H = hessian_postprocess(
-            self, previous_hessian, H, self.hessian_postprocess_method
-        )
-        g = ak * la.solve(H, g, assume_a="her")
+
+    H = hessian_postprocess(
+        self, previous_hessian, H, self.hessian_postprocess_method
+    )
+    g = ak * la.solve(H, g, assume_a="her")
 
     return g, H
+
+def hessian_postprocess(
+    self: "CSPSA",
+    Hprev: np.ndarray,
+    H: np.ndarray,
+    method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
+    tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
+) -> np.ndarray:
+
+    k = self.iter
+    I = np.eye(H.shape[0])
+
+    H = (H + H.T.conj()) / 2
+    if method == "Gidi":
+        H = la.sqrtm(H @ H.T.conj() + tol * I)
+        H = (k * Hprev + H) / (k + 1)
+    elif method == "Spall":
+        H = (k * Hprev + H) / (k + 1)
+        H = la.sqrtm(H @ H.T.conj()) + tol * I
+    else:
+        msg = f"Hessian postproces method should 'Gidi' or 'Spall'. Got {method}."
+        raise Exception(msg)
+
+    return H
