@@ -29,10 +29,10 @@ class CSPSA:
     ):
 
         self.gains = copy(gains)
-        self.callback = callback
         self.init_iter = init_iter
         self.perturbations = perturbations
         self.postprocessing = postprocessing
+        self.outer_callback = callback
 
         # Preconditioning
         self.scalar = scalar
@@ -51,6 +51,20 @@ class CSPSA:
         errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
         preconditioned = self.second_order or self.quantum_natural
         assert not (self.scalar and (not preconditioned)), errmsg
+
+    def callback(self, guess):
+        self.stop = self.outer_callback(guess) is not None
+
+    def make_collector(self):
+        params = []
+
+        def wrapper(self, guess):
+            params.append(guess)
+            self.stop = self.outer_callback(guess) is not None
+
+        self.callback = wrapper
+
+        return params
 
     @property
     def iter_count(self):
@@ -76,17 +90,6 @@ class CSPSA:
         bk = b / (self.iter + 1) ** t
 
         return ak, bk
-
-    def make_collector(self):
-        params = []
-
-        def wrapper(self, guess, old_cb=deepcopy(self.callback)):
-            params.append(guess)
-            old_cb(self, guess)
-
-        self.callback = wrapper
-
-        return params
 
     def default_hessian(self, guess) -> np.ndarray:
         return np.eye(len(guess))
