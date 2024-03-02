@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from scipy import linalg as la
-
-from copy import copy, deepcopy
+from copy import copy
 from tqdm import tqdm
+from scipy import linalg as la
 from typing import Callable, Sequence
 
 from .defaults import *
