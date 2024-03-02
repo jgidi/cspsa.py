@@ -137,9 +137,10 @@ class CSPSA:
 
         return new_guess
 
+# =============== First order
 def first_order_step(self: "CSPSA",
                      fun: Callable,
-                     guess: np.ndarray):
+                     guess: np.ndarray) -> np.ndarray:
 
     ak, bk = self._stepsize_and_pert()
 
@@ -155,7 +156,7 @@ def first_order_step(self: "CSPSA",
 # =============== Preconditioning
 
 def preconditioned_step(
-        self,
+        self : "CSPSA",
         fun: Callable,
         guess: np.ndarray,
         previous_hessian: np.ndarray | None = None,
@@ -172,7 +173,7 @@ def preconditioned_step(
     new_guess = guess - update
     new_guess = self.postprocessing(new_guess)
 
-    self.callback(self, new_guess)
+    self.callback(new_guess)
     self.iter += 1
 
     return new_guess, hessian
