@@ -8,6 +8,7 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
+
 class CSPSA:
     def __init__(
         self,
@@ -60,7 +61,7 @@ class CSPSA:
             params.append(guess)
             self._callback(iter, guess)
 
-        self.callback : Callable = wrapper
+        self.callback: Callable = wrapper
 
         return params
 
@@ -124,21 +125,22 @@ class CSPSA:
         if first_order:
             for _ in iterator:
                 new_guess = first_order_step(self, fun, new_guess)
-                if self.stop: break
+                if self.stop:
+                    break
 
         # Preconditioning
         else:
             H = copy(initial_hessian)
             for _ in iterator:
                 new_guess, H = preconditioned_step(self, fun, new_guess, H, fidelity)
-                if self.stop: break
+                if self.stop:
+                    break
 
         return new_guess
 
+
 # =============== First order
-def first_order_step(self: "CSPSA",
-                     fun: Callable,
-                     guess: np.ndarray) -> np.ndarray:
+def first_order_step(self: "CSPSA", fun: Callable, guess: np.ndarray) -> np.ndarray:
 
     ak, bk = self._stepsize_and_pert()
 
@@ -151,14 +153,16 @@ def first_order_step(self: "CSPSA",
 
     return g
 
+
 # =============== Preconditioning
 
+
 def preconditioned_step(
-        self : "CSPSA",
-        fun: Callable,
-        guess: np.ndarray,
-        previous_hessian: np.ndarray | None = None,
-        fidelity: Callable | None = None,
+    self: "CSPSA",
+    fun: Callable,
+    guess: np.ndarray,
+    previous_hessian: np.ndarray | None = None,
+    fidelity: Callable | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
 
     if previous_hessian is None:
@@ -175,6 +179,7 @@ def preconditioned_step(
     self.iter += 1
 
     return new_guess, hessian
+
 
 def preconditioned_update(
     self: "CSPSA",
@@ -224,16 +229,15 @@ def preconditioned_update(
 
     # Apply conditioning
     if self.scalar:
-        H = np.array([[ h ]])
+        H = np.array([[h]])
     else:
         H = h / np.outer(delta.conj(), delta2)
 
-    H = hessian_postprocess(
-        self, previous_hessian, H, self.hessian_postprocess_method
-    )
+    H = hessian_postprocess(self, previous_hessian, H, self.hessian_postprocess_method)
     g = ak * la.solve(H, g, assume_a="her")
 
     return g, H
+
 
 def hessian_postprocess(
     self: "CSPSA",

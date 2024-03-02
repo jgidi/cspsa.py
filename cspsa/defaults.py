@@ -29,9 +29,11 @@ DEFAULT_COMPLEX_PERTURBATIONS = (-1, -1j, 1, 1j)
 DEFAULT_HESSIAN_POSTPROCESS_METHOD = "Gidi"
 DEFAULT_HESSIAN_POSTPROCESS_TOL = 1e-3
 
+
 # Functions
 def do_nothing(*args):
     pass
+
 
 def identity(x):
     return x
