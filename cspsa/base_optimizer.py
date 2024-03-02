@@ -8,12 +8,6 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
-def do_nothing(*args):
-    pass
-
-def identity(x):
-    return x
-
 class CSPSA:
     def __init__(
         self,
