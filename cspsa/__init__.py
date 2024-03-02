@@ -2,4 +2,4 @@
 
 from .defaults import *
 
-from .first_order import SPSA, CSPSA
+from .partials import SPSA, CSPSA

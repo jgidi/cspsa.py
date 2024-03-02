@@ -27,7 +27,7 @@ guess = [12, 7] # Random value to start iterating from
 optimizer = cspsa.SPSA()
 sol = optimizer.run(f, guess)
 
-print(sol) # approx [0, 4]
+print(sol) # approx np.array([0, 4])
 ```
 
 # Examples
@@ -43,10 +43,14 @@ optimizer = cspsa.SPSA() # or CSPSA()
 which is equivalent to writing
 
 ``` python
-optimizer = cspsa.SPSA(num_iter = cspsa.DEFAULT_NUM_ITER, # number of iterations
-                       gains = cspsa.DEFAULT_GAINS, # Dictionary with the set of gain parameters
+optimizer = cspsa.SPSA(gains = cspsa.DEFAULT_GAINS, # Dictionary with the set of gain parameters
                        init_iter = 0, # Number of the initial iteration
-                       callback = lambda i,x : None, # A function to be called after each step.
+                       callback = cspsa.do_nothing, # A function to be called after each iteration, taking (iter, params).
+                       postprocessing = cspsa.identity, # A function to transform the parameters obtained after each iteration.
+                       second_order = False,  # If a second order update rule should be used.
+                       quantum_natural = False, # If quantum natural preconditioning should be used. Incompatible with `second_order`.
+                       scalar: bool = False,   # If a scalar approximation should be used when computing with `second_order` or `quantum_natural`.
+                       hessian_postprocess_method = "Gidi", # The hessian postprocessing to use when computing with `second_order` or `quantum_natural`
                        )
 ```
 
