@@ -9,15 +9,20 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
+def do_nothing(*args):
+    pass
 
-class StochasticOptimizer:
+def identity(x):
+    return x
+
+class CSPSA:
     def __init__(
         self,
         gains: dict = DEFAULT_GAINS,
         init_iter: int = 0,
-        callback: Callable = lambda self, x: None,
-        postprocessing: Callable = lambda x: x,
-        perturbations: Sequence = DEFAULT_REAL_PERTURBATIONS,
+        callback: Callable = do_nothing,
+        postprocessing: Callable = identity,
+        perturbations: Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
         scalar: bool = False,
         second_order: bool = False,
         quantum_natural: bool = False,
@@ -152,7 +157,7 @@ class StochasticOptimizer:
 
 
 def scalar_hessian_postprocess(
-    self: "StochasticOptimizer",
+    self: "CSPSA",
     Hprev: float,
     H: float,
     method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
@@ -171,7 +176,7 @@ def scalar_hessian_postprocess(
 
 
 def hessian_postprocess(
-    self: "StochasticOptimizer",
+    self: "CSPSA",
     H_old: np.ndarray,
     H: np.ndarray,
     method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
@@ -192,7 +197,7 @@ def hessian_postprocess(
     return H
 
 
-def first_order_update(self: "StochasticOptimizer", fun, guess):
+def first_order_update(self: "CSPSA", fun, guess):
 
     ak, bk = self._stepsize_and_pert()
 
@@ -207,7 +212,7 @@ def first_order_update(self: "StochasticOptimizer", fun, guess):
 
 
 def preconditioned_update(
-    self: "StochasticOptimizer",
+    self: "CSPSA",
     fun: Callable,
     guess: np.ndarray,
     previous_hessian: float | np.ndarray | None = None,

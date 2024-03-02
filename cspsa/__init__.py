@@ -2,4 +2,4 @@
 
 from .defaults import *
 
-from .derived_optimizers import SPSA, CSPSA
+from .partials import SPSA, CSPSA
