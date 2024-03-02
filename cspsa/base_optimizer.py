@@ -130,7 +130,7 @@ class CSPSA:
 
         # Preconditioning
         else:
-            H = self.default_hessian(guess, initial_hessian)
+            H = copy(initial_hessian)
             for _ in iterator:
                 new_guess, H = preconditioned_step(self, fun, new_guess, H, fidelity)
                 if self.stop: break
