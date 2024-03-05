@@ -10,5 +10,5 @@ setup(
     author="Jorge Gidi",
     author_email="jorgegidi@gmail.com",
     license="Apache 2.0",
-    install_requires=["numpy", "tqdm"],
+    install_requires=["numpy", "scipy", "tqdm"],
 )
