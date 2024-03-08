@@ -58,7 +58,7 @@ class CSPSA:
     def make_params_collector(self):
         params = []
 
-        def wrapper(self, iter, guess):
+        def wrapper(iter, guess):
             params.append(guess)
             self._callback(iter, guess)
 
