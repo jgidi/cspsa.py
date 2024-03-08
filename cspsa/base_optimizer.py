@@ -14,7 +14,7 @@ class CSPSA:
         gains: dict = DEFAULT_GAINS,
         init_iter: int = 0,
         callback: Callable = do_nothing,
-        postprocessing: Callable = identity,
+        apply_update: Callable = np.add,
         perturbations: Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
         maximize: bool = False,
         scalar: bool = False,
@@ -26,8 +26,8 @@ class CSPSA:
         self.gains = copy(gains)
         self.init_iter = init_iter
         self.sign = 2 * maximize - 1
+        self.apply_update = apply_update
         self.perturbations = perturbations
-        self.postprocessing = postprocessing
         self.outer_callback = callback
 
         # Preconditioning
@@ -150,9 +150,7 @@ def first_order_step(self: "CSPSA", fun: Callable, guess: np.ndarray) -> np.ndar
     self.function_eval_count += 2
 
     update = self.sign * 0.5 * ak * df / delta.conj()
-    new_guess = guess + update
-
-    new_guess = self.postprocessing(new_guess)
+    new_guess = self.apply_update(guess, update)
 
     self.callback(self.iter, new_guess)
     self.iter += 1
@@ -178,8 +176,7 @@ def preconditioned_step(
         self, fun, guess, previous_hessian, fidelity
     )
 
-    new_guess = guess - update
-    new_guess = self.postprocessing(new_guess)
+    new_guess = self.apply_update(guess, update)
 
     self.callback(self.iter, new_guess)
     self.iter += 1
