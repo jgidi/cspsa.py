@@ -8,7 +8,6 @@ from typing import Callable, Sequence
 
 from .defaults import *
 
-# TODO Add option for exact preconditioning. On step or run, accept preconditioner from Callable taking parameters
 class CSPSA:
     def __init__(
         self,
@@ -17,6 +16,7 @@ class CSPSA:
         callback: Callable = do_nothing,
         postprocessing: Callable = identity,
         perturbations: Sequence = DEFAULT_COMPLEX_PERTURBATIONS,
+        maximize: bool = False,
         scalar: bool = False,
         second_order: bool = False,
         quantum_natural: bool = False,
@@ -25,6 +25,7 @@ class CSPSA:
 
         self.gains = copy(gains)
         self.init_iter = init_iter
+        self.sign = 2 * maximize - 1
         self.perturbations = perturbations
         self.postprocessing = postprocessing
         self.outer_callback = callback
@@ -148,8 +149,8 @@ def first_order_step(self: "CSPSA", fun: Callable, guess: np.ndarray) -> np.ndar
     df = fun(guess + delta) - fun(guess - delta)
     self.function_eval_count += 2
 
-    update = 0.5 * ak * df / delta.conj()
-    new_guess = guess - update
+    update = self.sign * 0.5 * ak * df / delta.conj()
+    new_guess = guess + update
 
     new_guess = self.postprocessing(new_guess)
 
@@ -239,7 +240,7 @@ def preconditioned_update(
         H = h / np.outer(delta.conj(), delta2)
 
     H = hessian_postprocess(self, previous_hessian, H, self.hessian_postprocess_method)
-    g = ak * la.solve(H, g, assume_a="her")
+    g = self.sign * ak * la.solve(H, g, assume_a="her")
 
     return g, H
 
