@@ -46,7 +46,7 @@ which is equivalent to writing
 optimizer = cspsa.SPSA(gains = cspsa.DEFAULT_GAINS, # Dictionary with the set of gain parameters
                        init_iter = 0, # Number of the initial iteration
                        callback = cspsa.do_nothing, # A function to be called after each iteration, taking (iter, params).
-                       postprocessing = cspsa.identity, # A function to transform the parameters obtained after each iteration.
+                       apply_update = cspsa.np.add, # A function taking `guess` and `update`, and returning the guess for the next iteration
                        second_order = False,  # If a second order update rule should be used.
                        quantum_natural = False, # If quantum natural preconditioning should be used. Incompatible with `second_order`.
                        scalar: bool = False,   # If a scalar approximation should be used when computing with `second_order` or `quantum_natural`.
