@@ -19,7 +19,7 @@ class FirstOrder(unittest.TestCase):
 
     def test_spsa(self):
         objfun = real_objfun
-        guess = np.random.randn(2)# + 1j * np.random.randn(2)
+        guess = np.random.randn(2)
 
         opt = SPSA()
         params1 = opt.make_params_collector()
