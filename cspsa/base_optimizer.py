@@ -92,7 +92,10 @@ class CSPSA:
         return ak, bk
 
     def default_hessian(self, guess) -> np.ndarray:
-        return np.eye(len(guess))
+        if self.scalar:
+            return np.array([[1.0]])
+        else:
+            return np.eye(len(guess))
 
     def step(
         self,
