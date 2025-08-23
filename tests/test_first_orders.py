@@ -12,11 +12,12 @@ from .tools import naive_first_order
 def complex_objfun(x):
     return np.abs(x[0] - 1 - 3j) + np.abs(x[1])
 
+
 def real_objfun(x):
-    return (x[0] - 4)**2 + (x[1] - 0.5)**2
+    return (x[0] - 4) ** 2 + (x[1] - 0.5) ** 2
+
 
 class FirstOrder(unittest.TestCase):
-
     def test_spsa(self):
         objfun = real_objfun
         guess = np.random.randn(2)
@@ -28,9 +29,9 @@ class FirstOrder(unittest.TestCase):
         opt.run(objfun, guess)
 
         np.random.seed(0)
-        params2 = naive_first_order(objfun, guess,
-                                    accumulate=True,
-                                    perturbations=DEFAULT_REAL_PERTURBATIONS)
+        params2 = naive_first_order(
+            objfun, guess, accumulate=True, perturbations=DEFAULT_REAL_PERTURBATIONS
+        )
 
         for x1, x2 in zip(params1, params2):
             self.assertTrue(np.all(x1 == x2))
@@ -46,13 +47,13 @@ class FirstOrder(unittest.TestCase):
         opt.run(objfun, guess)
 
         np.random.seed(0)
-        params2 = naive_first_order(objfun, guess,
-                                    accumulate=True,
-                                    perturbations=DEFAULT_COMPLEX_PERTURBATIONS)
+        params2 = naive_first_order(
+            objfun, guess, accumulate=True, perturbations=DEFAULT_COMPLEX_PERTURBATIONS
+        )
 
         for x1, x2 in zip(params1, params2):
             self.assertTrue(np.all(x1 == x2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
