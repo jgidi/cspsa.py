@@ -22,6 +22,7 @@ class CSPSA:
         second_order: bool = False,
         quantum_natural: bool = False,
         hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
+        seed: int | None = None,
     ):
         self.gains = copy(gains)
         self.init_iter = init_iter
@@ -29,6 +30,8 @@ class CSPSA:
         self.apply_update = apply_update
         self.perturbations = perturbations
         self.outer_callback = callback
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
 
         # Preconditioning
         self.scalar = scalar
@@ -75,6 +78,7 @@ class CSPSA:
         self.iter = self.init_iter
         self.function_eval_count = 0
         self.fidelity_eval_count = 0
+        self.rng = np.random.default_rng(self.seed)
 
     def _stepsize_and_pert(self):
         a = self.gains.get("a", DEFAULT_GAINS["a"])
@@ -145,7 +149,7 @@ class CSPSA:
 def first_order_step(self: "CSPSA", fun: Callable, guess: np.ndarray) -> np.ndarray:
     ak, bk = self._stepsize_and_pert()
 
-    delta = bk * np.random.choice(self.perturbations, len(guess))
+    delta = bk * self.rng.choice(self.perturbations, len(guess))
     df = fun(guess + delta) - fun(guess - delta)
     self.function_eval_count += 2
 
@@ -192,8 +196,8 @@ def preconditioned_update(
 ) -> tuple[np.ndarray, np.ndarray]:
     ak, bk = self._stepsize_and_pert()
 
-    delta = bk * np.random.choice(self.perturbations, len(guess))
-    delta2 = bk * np.random.choice(self.perturbations, len(guess))
+    delta = bk * self.rng.choice(self.perturbations, len(guess))
+    delta2 = bk * self.rng.choice(self.perturbations, len(guess))
 
     # First order
     df = fun(guess + delta) - fun(guess - delta)
