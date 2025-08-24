@@ -35,7 +35,6 @@ class CSPSA:
         hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
         seed: int | None = None,
     ):
-        # Individual gain parameters only; fall back to defaults when None
         self.a_precond = 1.0 if a is None else a
         self.a = DEFAULT_GAINS["a"] if a is None else a
         self.b = DEFAULT_GAINS["b"] if b is None else b

@@ -1,13 +1,3 @@
 #!/usr/bin/env python3
 
-from .defaults import (
-	DEFAULT_NUM_ITER,
-	DEFAULT_REAL_PERTURBATIONS,
-	DEFAULT_COMPLEX_PERTURBATIONS,
-	DEFAULT_GAINS,
-	DEFAULT_HESSIAN_POSTPROCESS_METHOD,
-	DEFAULT_HESSIAN_POSTPROCESS_TOL,
-	do_nothing,
-	identity,
-)
-from .partials import SPSA, CSPSA
+__all__ = ["DEFAULT_GAINS", "SPSA", "CSPSA"]
