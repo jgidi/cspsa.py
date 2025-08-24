@@ -6,7 +6,14 @@ from tqdm import tqdm
 from scipy import linalg as la
 from typing import Callable, Sequence
 
-from .defaults import *
+from .defaults import (
+    DEFAULT_NUM_ITER,
+    DEFAULT_GAINS,
+    DEFAULT_COMPLEX_PERTURBATIONS,
+    DEFAULT_HESSIAN_POSTPROCESS_METHOD,
+    DEFAULT_HESSIAN_POSTPROCESS_TOL,
+    do_nothing,
+)
 
 
 class CSPSA:

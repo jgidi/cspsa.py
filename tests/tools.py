@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from cspsa.defaults import *
+from cspsa.defaults import (
+    DEFAULT_NUM_ITER,
+    DEFAULT_COMPLEX_PERTURBATIONS,
+    DEFAULT_GAINS,
+)
 
 
 def naive_first_order(

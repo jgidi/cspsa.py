@@ -4,7 +4,10 @@ import numpy as np
 import unittest
 
 from cspsa import SPSA, CSPSA
-from cspsa.defaults import *
+from cspsa.defaults import (
+    DEFAULT_REAL_PERTURBATIONS,
+    DEFAULT_COMPLEX_PERTURBATIONS,
+)
 
 from .tools import naive_first_order
 
