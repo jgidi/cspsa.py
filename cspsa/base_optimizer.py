@@ -19,7 +19,11 @@ from .defaults import (
 class CSPSA:
     def __init__(
         self,
-        gains: dict = DEFAULT_GAINS,
+        a: float | None = None,
+        b: float | None = None,
+        A: float | None = None,
+        s: float | None = None,
+        t: float | None = None,
         init_iter: int = 0,
         callback: Callable = do_nothing,
         apply_update: Callable = np.add,
@@ -31,7 +35,13 @@ class CSPSA:
         hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
         seed: int | None = None,
     ):
-        self.gains = copy(gains)
+        # Individual gain parameters only; fall back to defaults when None
+        self.a_precond = 1.0 if a is None else a
+        self.a = DEFAULT_GAINS["a"] if a is None else a
+        self.b = DEFAULT_GAINS["b"] if b is None else b
+        self.A = DEFAULT_GAINS["A"] if A is None else A
+        self.s = DEFAULT_GAINS["s"] if s is None else s
+        self.t = DEFAULT_GAINS["t"] if t is None else t
         self.init_iter = init_iter
         self.sign = 2 * maximize - 1
         self.apply_update = apply_update
@@ -88,14 +98,14 @@ class CSPSA:
         self.rng = np.random.default_rng(self.seed)
 
     def _stepsize_and_pert(self):
-        a = self.gains.get("a", DEFAULT_GAINS["a"])
-        A = self.gains.get("A", DEFAULT_GAINS["A"])
-        b = self.gains.get("b", DEFAULT_GAINS["b"])
-        s = self.gains.get("s", DEFAULT_GAINS["s"])
-        t = self.gains.get("t", DEFAULT_GAINS["t"])
+        a = self.a
+        A = self.A
+        b = self.b
+        s = self.s
+        t = self.t
 
         if self.second_order or self.quantum_natural:
-            a = 1
+            a = self.a_precond
 
         ak = a / (self.iter + 1 + A) ** s
         bk = b / (self.iter + 1) ** t
@@ -124,7 +134,7 @@ class CSPSA:
     def run(
         self,
         fun: Callable,
-        guess: Sequence,
+        guess: np.ndarray,
         num_iter: int = DEFAULT_NUM_ITER,
         progressbar: bool = False,
         initial_hessian=None,
@@ -170,8 +180,6 @@ def first_order_step(self: "CSPSA", fun: Callable, guess: np.ndarray) -> np.ndar
 
 
 # =============== Preconditioning
-
-
 def preconditioned_step(
     self: "CSPSA",
     fun: Callable,
