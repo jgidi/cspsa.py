@@ -11,8 +11,10 @@ def naive_first_order(
     perturbations=DEFAULT_COMPLEX_PERTURBATIONS,
     gains=DEFAULT_GAINS,
     accumulate=False,
+    seed=None,
 ):
     params = np.copy(guess)
+    rng = np.random.default_rng(seed)
 
     if accumulate:
         acc = []
@@ -21,7 +23,7 @@ def naive_first_order(
         ak = gains["a"] / (k + gains["A"] + 1) ** gains["s"]
         bk = gains["b"] / (k + 1) ** gains["t"]
 
-        delta = bk * np.random.choice(perturbations, params.shape)
+        delta = bk * rng.choice(perturbations, params.shape)
 
         df = f(params + delta) - f(params - delta)
 

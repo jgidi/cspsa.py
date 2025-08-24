@@ -19,36 +19,41 @@ def real_objfun(x):
 
 class FirstOrder(unittest.TestCase):
     def test_spsa(self):
+        seed = 0
         objfun = real_objfun
         guess = np.random.randn(2)
 
-        opt = SPSA()
+        opt = SPSA(seed=seed)
         params1 = opt.make_params_collector()
-
-        np.random.seed(0)
         opt.run(objfun, guess)
 
-        np.random.seed(0)
         params2 = naive_first_order(
-            objfun, guess, accumulate=True, perturbations=DEFAULT_REAL_PERTURBATIONS
+            objfun,
+            guess,
+            accumulate=True,
+            perturbations=DEFAULT_REAL_PERTURBATIONS,
+            seed=seed,
         )
 
         for x1, x2 in zip(params1, params2):
             self.assertTrue(np.all(x1 == x2))
 
     def test_cspsa(self):
+        seed = 0
         objfun = complex_objfun
         guess = np.random.randn(2)
 
-        opt = CSPSA()
+        opt = CSPSA(seed=seed)
         params1 = opt.make_params_collector()
-
-        np.random.seed(0)
         opt.run(objfun, guess)
 
         np.random.seed(0)
         params2 = naive_first_order(
-            objfun, guess, accumulate=True, perturbations=DEFAULT_COMPLEX_PERTURBATIONS
+            objfun,
+            guess,
+            accumulate=True,
+            perturbations=DEFAULT_COMPLEX_PERTURBATIONS,
+            seed=seed,
         )
 
         for x1, x2 in zip(params1, params2):
