@@ -64,8 +64,7 @@ class CSPSA:
         assert not (self.second_order and self.quantum_natural), errmsg
 
         errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
-        preconditioned = self.second_order or self.quantum_natural
-        assert not (self.scalar and (not preconditioned)), errmsg
+        assert not (self.scalar and not self.is_preconditioned), errmsg
 
     # Minimal callback action: Check for returned value and set self.stop
     def _callback(self, *args):
@@ -86,6 +85,10 @@ class CSPSA:
         return params
 
     @property
+    def is_preconditioned(self) -> bool:
+        return self.second_order or self.quantum_natural
+
+    @property
     def iter_count(self):
         return self.iter - self.init_iter
 
@@ -103,7 +106,7 @@ class CSPSA:
         s = self.s
         t = self.t
 
-        if self.second_order or self.quantum_natural:
+        if self.is_preconditioned:
             a = self.a_precond
 
         ak = a / (self.iter + 1 + A) ** s
@@ -124,11 +127,10 @@ class CSPSA:
         previous_hessian: np.ndarray | None = None,
         fidelity: Callable | None = None,
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        first_order = not (self.second_order or self.quantum_natural)
-        if first_order:
-            return first_order_step(self, fun, guess)
+        if not self.is_preconditioned:
+            return self._first_order_step(fun, guess)
         else:
-            return preconditioned_step(self, fun, guess, previous_hessian, fidelity)
+            return self._preconditioned_step(fun, guess, previous_hessian, fidelity)
 
     def run(
         self,
@@ -143,10 +145,9 @@ class CSPSA:
         iterator = range(self.init_iter, self.init_iter + num_iter)
         iterator = tqdm(iterator, disable=not progressbar)
 
-        first_order = not (self.second_order or self.quantum_natural)
-        if first_order:
+        if not self.is_preconditioned:
             for _ in iterator:
-                new_guess = first_order_step(self, fun, new_guess)
+                new_guess = self.step(fun, new_guess)
                 if self.stop:
                     break
 
@@ -154,129 +155,126 @@ class CSPSA:
         else:
             H = copy(initial_hessian)
             for _ in iterator:
-                new_guess, H = preconditioned_step(self, fun, new_guess, H, fidelity)
+                new_guess, H = self.step(fun, new_guess, H, fidelity)
                 if self.stop:
                     break
 
         return new_guess
 
+    # =============== First order
+    def _first_order_step(self, fun: Callable, guess: np.ndarray) -> np.ndarray:
+        ak, bk = self._stepsize_and_pert()
 
-# =============== First order
-def first_order_step(self: "CSPSA", fun: Callable, guess: np.ndarray) -> np.ndarray:
-    ak, bk = self._stepsize_and_pert()
-
-    delta = bk * self.rng.choice(self.perturbations, len(guess))
-    df = fun(guess + delta) - fun(guess - delta)
-    self.function_eval_count += 2
-
-    update = self.sign * 0.5 * ak * df / delta.conj()
-    new_guess = self.apply_update(guess, update)
-
-    self.callback(self.iter, new_guess)
-    self.iter += 1
-
-    return new_guess
-
-
-# =============== Preconditioning
-def preconditioned_step(
-    self: "CSPSA",
-    fun: Callable,
-    guess: np.ndarray,
-    previous_hessian: np.ndarray | None = None,
-    fidelity: Callable | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    if previous_hessian is None:
-        previous_hessian = self.default_hessian(guess)
-
-    update, hessian = preconditioned_update(
-        self, fun, guess, previous_hessian, fidelity
-    )
-
-    new_guess = self.apply_update(guess, update)
-
-    self.callback(self.iter, new_guess)
-    self.iter += 1
-
-    return new_guess, hessian
-
-
-def preconditioned_update(
-    self: "CSPSA",
-    fun: Callable,
-    guess: np.ndarray,
-    previous_hessian: np.ndarray,
-    fidelity: Callable | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    ak, bk = self._stepsize_and_pert()
-
-    delta = bk * self.rng.choice(self.perturbations, len(guess))
-    delta2 = bk * self.rng.choice(self.perturbations, len(guess))
-
-    # First order
-    df = fun(guess + delta) - fun(guess - delta)
-    self.function_eval_count += 2
-
-    # Gradient estimator
-    g = 0.5 * df / delta.conj()
-
-    # Second order
-    if self.second_order:
-        dfp = fun(guess + delta + delta2) - fun(guess - delta + delta2)
-
+        delta = bk * self.rng.choice(self.perturbations, len(guess))
+        df = fun(guess + delta) - fun(guess - delta)
         self.function_eval_count += 2
 
-        # Hessian factor
-        h = 0.5 * (dfp - df)
+        update = self.sign * 0.5 * ak * df / delta.conj()
+        new_guess = self.apply_update(guess, update)
 
-    # Quantum Natural
-    if self.quantum_natural:
-        errmsg = "For Quantum Natural optimization, you must provide the fidelity"
-        assert fidelity is not None, errmsg
+        self.callback(self.iter, new_guess)
+        self.iter += 1
 
-        dF = (
-            fidelity(guess, guess + delta + delta2)
-            - fidelity(guess, guess - delta + delta2)
-            - fidelity(guess, guess + delta)
-            + fidelity(guess, guess - delta)
+        return new_guess
+
+    # =============== Preconditioning
+    def _preconditioned_step(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        previous_hessian: np.ndarray | None = None,
+        fidelity: Callable | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if previous_hessian is None:
+            previous_hessian = self.default_hessian(guess)
+
+        update, hessian = self._preconditioned_update(
+            fun, guess, previous_hessian, fidelity
         )
 
-        self.fidelity_eval_count += 4
+        new_guess = self.apply_update(guess, update)
 
-        # Hessian factor
-        h = -0.25 * dF
+        self.callback(self.iter, new_guess)
+        self.iter += 1
 
-    # Apply conditioning
-    if self.scalar:
-        H = np.array([[h]])
-    else:
-        H = h / np.outer(delta.conj(), delta2)
+        return new_guess, hessian
 
-    H = hessian_postprocess(self, previous_hessian, H, self.hessian_postprocess_method)
-    g = self.sign * ak * la.solve(H, g, assume_a="her")
+    def _preconditioned_update(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        previous_hessian: np.ndarray,
+        fidelity: Callable | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        ak, bk = self._stepsize_and_pert()
 
-    return g, H
+        delta = bk * self.rng.choice(self.perturbations, len(guess))
+        delta2 = bk * self.rng.choice(self.perturbations, len(guess))
 
+        # First order
+        df = fun(guess + delta) - fun(guess - delta)
+        self.function_eval_count += 2
 
-def hessian_postprocess(
-    self: "CSPSA",
-    Hprev: np.ndarray,
-    H: np.ndarray,
-    method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
-    tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
-) -> np.ndarray:
-    k = self.iter
-    I = np.eye(H.shape[0])
+        # Gradient estimator
+        g = 0.5 * df / delta.conj()
 
-    H = (H + H.T.conj()) / 2
-    if method == "Gidi":
-        H = la.sqrtm(H @ H.T.conj() + tol * I)
-        H = (k * Hprev + H) / (k + 1)
-    elif method == "Spall":
-        H = (k * Hprev + H) / (k + 1)
-        H = la.sqrtm(H @ H.T.conj()) + tol * I
-    else:
-        msg = f"Hessian postproces method should be 'Gidi' or 'Spall'. Got {method}."
-        raise Exception(msg)
+        # Second order
+        if self.second_order:
+            dfp = fun(guess + delta + delta2) - fun(guess - delta + delta2)
 
-    return H
+            self.function_eval_count += 2
+
+            # Hessian factor
+            h = 0.5 * (dfp - df)
+
+        # Quantum Natural
+        if self.quantum_natural:
+            errmsg = "For Quantum Natural optimization, you must provide the fidelity"
+            assert fidelity is not None, errmsg
+
+            dF = (
+                fidelity(guess, guess + delta + delta2)
+                - fidelity(guess, guess - delta + delta2)
+                - fidelity(guess, guess + delta)
+                + fidelity(guess, guess - delta)
+            )
+
+            self.fidelity_eval_count += 4
+
+            # Hessian factor
+            h = -0.25 * dF
+
+        # Apply conditioning
+        if self.scalar:
+            H = np.array([[h]])
+        else:
+            H = h / np.outer(delta.conj(), delta2)
+
+        H = self._hessian_postprocess(
+            previous_hessian, H, self.hessian_postprocess_method
+        )
+        g = self.sign * ak * la.solve(H, g, assume_a="her")
+
+        return g, H
+
+    def _hessian_postprocess(
+        self,
+        Hprev: np.ndarray,
+        H: np.ndarray,
+        tol: float = DEFAULT_HESSIAN_POSTPROCESS_TOL,
+    ) -> np.ndarray:
+        k = self.iter
+        I = np.eye(H.shape[0])
+
+        H = (H + H.T.conj()) / 2
+        if self.hessian_postprocess_method == "Gidi":
+            H = la.sqrtm(H @ H.T.conj() + tol * I)
+            H = (k * Hprev + H) / (k + 1)
+        elif self.hessian_postprocess_method == "Spall":
+            H = (k * Hprev + H) / (k + 1)
+            H = la.sqrtm(H @ H.T.conj()) + tol * I
+        else:
+            raise ValueError("Hessian postprocess method should be 'Gidi' or 'Spall'.")
+            
+
+        return H
