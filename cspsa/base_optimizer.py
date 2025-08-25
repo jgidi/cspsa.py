@@ -54,6 +54,7 @@ class CSPSA:
         self.second_order = second_order
         self.quantum_natural = quantum_natural
         self.hessian_postprocess_method = hessian_postprocess_method
+        self.H = None
 
         self.restart()
         self._check_args()
@@ -98,6 +99,7 @@ class CSPSA:
         self.function_eval_count = 0
         self.fidelity_eval_count = 0
         self.rng = np.random.default_rng(self.seed)
+        self.H = None
 
     def _stepsize_and_pert(self):
         a = self.a
@@ -124,13 +126,12 @@ class CSPSA:
         self,
         fun: Callable,
         guess: np.ndarray,
-        previous_hessian: np.ndarray | None = None,
         fidelity: Callable | None = None,
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    ) -> np.ndarray:
         if not self.is_preconditioned:
             return self._first_order_step(fun, guess)
         else:
-            return self._preconditioned_step(fun, guess, previous_hessian, fidelity)
+            return self._preconditioned_step(fun, guess, fidelity)
 
     def run(
         self,
@@ -153,9 +154,11 @@ class CSPSA:
 
         # Preconditioning
         else:
-            H = copy(initial_hessian)
+            if initial_hessian is not None:
+                self.H = copy(initial_hessian)
+
             for _ in iterator:
-                new_guess, H = self.step(fun, new_guess, H, fidelity)
+                new_guess = self.step(fun, new_guess, fidelity=fidelity)
                 if self.stop:
                     break
 
@@ -182,28 +185,27 @@ class CSPSA:
         self,
         fun: Callable,
         guess: np.ndarray,
-        previous_hessian: np.ndarray | None = None,
         fidelity: Callable | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        if previous_hessian is None:
-            previous_hessian = self.default_hessian(guess)
+    ) -> np.ndarray:
+        if self.H is None:
+            self.H = self.default_hessian(guess)
 
         update, hessian = self._preconditioned_update(
-            fun, guess, previous_hessian, fidelity
+            fun, guess, fidelity
         )
+        self.H = hessian
 
         new_guess = self.apply_update(guess, update)
 
         self.callback(self.iter, new_guess)
         self.iter += 1
 
-        return new_guess, hessian
+        return new_guess
 
     def _preconditioned_update(
         self,
         fun: Callable,
         guess: np.ndarray,
-        previous_hessian: np.ndarray,
         fidelity: Callable | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         ak, bk = self._stepsize_and_pert()
@@ -251,7 +253,7 @@ class CSPSA:
             H = h / np.outer(delta.conj(), delta2)
 
         H = self._hessian_postprocess(
-            previous_hessian, H, self.hessian_postprocess_method
+            self.H, H
         )
         g = self.sign * ak * la.solve(H, g, assume_a="her")
 
@@ -274,7 +276,7 @@ class CSPSA:
             H = (k * Hprev + H) / (k + 1)
             H = la.sqrtm(H @ H.T.conj()) + tol * I
         else:
-            raise ValueError("Hessian postprocess method should be 'Gidi' or 'Spall'.")
-            
+            msg = f"Hessian postprocess method should be 'Gidi' or 'Spall'. Got {self.hessian_postprocess_method}."
+            raise ValueError(msg)
 
         return H
