@@ -175,8 +175,8 @@ class CSPSA:
         update = self.sign * 0.5 * ak * df / delta.conj()
         new_guess = self.apply_update(guess, update)
 
-        self.callback(self.iter, new_guess)
         self.iter += 1
+        self.callback(self.iter, new_guess)
 
         return new_guess
 
@@ -197,8 +197,8 @@ class CSPSA:
 
         new_guess = self.apply_update(guess, update)
 
-        self.callback(self.iter, new_guess)
         self.iter += 1
+        self.callback(self.iter, new_guess)
 
         return new_guess
 
