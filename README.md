@@ -27,7 +27,7 @@ sol = optimizer.run(f, guess)
 print(sol) # approx np.array([0, 4])
 ```
 
-# Examples
+# Quickstart
 
 From cspsa you can import the optimizers SPSA and CSPSA. Both take the same arguments.
 
@@ -76,14 +76,15 @@ def cb(iter, x):
 
 optimizer = cspsa.SPSA(callback=cb)
 
-optimizer.run(fun, guess)  # Assuming you have `fun` and `guess` defined
+optimizer.run(f, guess)
+# Now `params` contains the evolution of `guess` at each iteration
 ```
 The method `run` also takes a keyword to allow for showing a progress bar,
 ``` python
 optimizer.run(fun, guess, progressbar=True)
 ```
 
-An alternative approach that allows more control would be to use the method `step` instead of `run`, as in
+An alternative approach that allows more control is to use the method `step` instead of `run`, as in
 
 ``` python
 optimizer = cspsa.SPSA()
@@ -92,55 +93,38 @@ params = []
 new_guess = guess
 num_iter = 100
 for _ in range(num_iter):
-    new_guess = optimizer.step(fun, new_guess)
+    new_guess = optimizer.step(f, new_guess)
     params.append(new_guess)
 ```
 
-Finally, note that you can restart the iteration count of an optimizer by running
-
-``` python
-optimizer.restart()
-```
-
-If using the `step` method, take into account that for preconditioned optimizers it takes and returns both the new parameters and the Hessian approximation.
-```python
-optimizer = cspsa.SPSA(quantum_natural=True)
-new_guess = guess
-for _ in range(num_iter):
-    new_guess, H = optimizer.step(fun, new_guess, H, fidelity)
-```
-For a second order optimizer, the fidelity is not required.
-
 ## Optimizer properties & advanced usage
-
-This section documents several newer features and properties added to the optimizers in this library.
 
 ### Counters
 
-- `optimizer.iter` — The number of the current iteration. It starts from `optimizer.init_iter` and is incremented after each step.
-- `optimizer.iter_count` — How many iterations have been executed. Internally this is `optimizer.iter - optimizer.init_iter`.
-- `optimizer.function_eval_count` — How many times the objective function (`fun`) has been called.
-- `optimizer.fidelity_eval_count` — How many times the fidelity function (used with `quantum_natural`) has been called.
+- `optimizer.iter`: The number of the current iteration. It starts from `optimizer.init_iter` and is incremented after each step.
+- `optimizer.iter_count`: How many iterations have been executed.
+- `optimizer.function_eval_count`: How many times the objective function (`fun`) has been called.
+- `optimizer.fidelity_eval_count`: How many times the fidelity function (used with `quantum_natural`) has been called.
 
 These counters are updated automatically during `step` and `run`.
 
 ### Collecting parameters during the run
 
-Use `optimizer.make_params_collector()` to get an empty list that will be populated with the new parameters after each iteration. The method also wires a callback that appends the latest guess each iteration and respects the optimizer's callback-stop behavior.
+Use `optimizer.make_params_collector()` to get an empty list that will be populated with the new parameters after each iteration.
 
 Example:
 
 ```python
 params = optimizer.make_params_collector()
-optimizer.run(fun, guess, num_iter=100)
+optimizer.run(f, guess, num_iter=100)
 # `params` now contains the guesses at each iteration
 ```
 
-Note: `make_params_collector()` replaces the optimizer's `callback` with a collector wrapper. The original `outer_callback` remains available as the callback provided when the optimizer was created.
+Note: `make_params_collector()` replaces the optimizer's `callback` with a collector wrapping the callback provided when the optimizer was created.
 
 ### Restarting an optimizer
 
-Call `optimizer.restart()` to reset counters and RNG to the initial state. This sets `iter` back to `init_iter`, and zeroes `function_eval_count` and `fidelity_eval_count`.
+Call `optimizer.restart()` to reset the counters and the RNG to the initial state. This sets `iter` back to `init_iter`, zeroes `function_eval_count` and `fidelity_eval_count`, etc
 
 ### Second-order and quantum-natural optimization
 
@@ -157,14 +141,14 @@ def fidelity(x, y):
     return np.real(np.vdot(x, y))
 
 optimizer = cspsa.CSPSA(quantum_natural=True)
-sol = optimizer.run(fun, guess, num_iter=200, fidelity=fidelity)
+sol = optimizer.run(f, guess, num_iter=200, fidelity=fidelity)
 ```
 
 ### Hessian postprocessing and scalar approximation
 
 When using `second_order` or `quantum_natural`, the optimizer computes a Hessian-like matrix which is postprocessed using the method specified by `hessian_postprocess_method` (default: `"Gidi"`). Supported methods are `"Gidi"` and `"Spall"`.
 
-If `scalar=True` is set, the optimizer uses a scalar approximation for the Hessian (a 1×1 matrix) instead of a full matrix. This is useful for low-memory or scalar preconditioning use-cases.
+If `scalar=True` is set, the optimizer uses a scalar approximation for the Hessian instead of a full matrix.
 
 ### Callbacks and stopping
 
@@ -179,7 +163,7 @@ def cb(iter, params):
         return True
 
 opt = cspsa.SPSA(callback=cb)
-opt.run(fun, guess, num_iter=10000)
+opt.run(f, guess, num_iter=10000)
 ```
 
 ### Custom update rule (`apply_update`)
