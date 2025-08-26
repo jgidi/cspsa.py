@@ -112,9 +112,7 @@ class CSPSA:
         if self.H is None:
             self.H = self._default_hessian(guess)
 
-        update, hessian = self._preconditioned_update(
-            fun, guess, fidelity
-        )
+        update, hessian = self._preconditioned_update(fun, guess, fidelity)
         self.H = hessian
 
         new_guess = self.apply_update(guess, update)
@@ -124,7 +122,9 @@ class CSPSA:
 
         return new_guess
 
-    def _compute_difference(self, fun: Callable, guess: np.ndarray, delta: np.ndarray) -> float:
+    def _compute_difference(
+        self, fun: Callable, guess: np.ndarray, delta: np.ndarray
+    ) -> float:
         df = 0.5 * (fun(guess + delta) - fun(guess - delta))
         self.function_eval_count += 2
         return df
@@ -161,7 +161,7 @@ class CSPSA:
 
         # Apply conditioning
         if self.scalar:
-            H = np.array([[h / bk ** 2]])
+            H = np.array([[h / bk**2]])
         else:
             H = h / np.outer(delta.conj(), delta2)
 
