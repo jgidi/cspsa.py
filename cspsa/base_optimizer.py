@@ -112,29 +112,6 @@ class CSPSA:
         if self.H is None:
             self.H = self._default_hessian(guess)
 
-        update, hessian = self._preconditioned_update(fun, guess, fidelity)
-        self.H = hessian
-
-        new_guess = self.apply_update(guess, update)
-
-        self.iter += 1
-        self.callback(self.iter, new_guess)
-
-        return new_guess
-
-    def _compute_difference(
-        self, fun: Callable, guess: np.ndarray, delta: np.ndarray
-    ) -> float:
-        df = 0.5 * (fun(guess + delta) - fun(guess - delta))
-        self.function_eval_count += 2
-        return df
-
-    def _preconditioned_update(
-        self,
-        fun: Callable,
-        guess: np.ndarray,
-        fidelity: Callable | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
         ak, bk = self._stepsize_and_pert()
 
         delta = self._sample_delta(bk, len(guess))
@@ -165,10 +142,24 @@ class CSPSA:
         else:
             H = h / np.outer(delta.conj(), delta2)
 
+        # Compute final update
         H = self._hessian_postprocess(self.H, H)
-        g = self.sign * ak * la.solve(H, g, assume_a="her")
+        self.H = H
+        update = self.sign * ak * la.solve(H, g, assume_a="her")
 
-        return g, H
+        # Make the step
+        new_guess = self.apply_update(guess, update)
+        self.iter += 1
+        self.callback(self.iter, new_guess)
+
+        return new_guess
+
+    def _compute_difference(
+        self, fun: Callable, guess: np.ndarray, delta: np.ndarray
+    ) -> float:
+        df = 0.5 * (fun(guess + delta) - fun(guess - delta))
+        self.function_eval_count += 2
+        return df
 
     def _hessian_postprocess(
         self,
