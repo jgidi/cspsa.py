@@ -271,7 +271,7 @@ class CSPSA:
         meas = [fun(guess) for _ in range(num_samples)]
         self.function_eval_count += num_samples
 
-        b = max(float(np.std(meas)), 1e-3)
+        b = max(float(np.std(meas)), 1e-5)
 
         self.b = b
         return b
