@@ -166,7 +166,7 @@ opt = cspsa.SPSA(callback=cb)
 opt.run(f, guess, num_iter=10000)
 ```
 
-### Custom update rule (`apply_update`)
+### Custom update rule
 
 Instead of requiring a postprocessing function, you can provide a custom `apply_update(guess, update)` when creating the optimizer. This function should return the guess for the next iteration given the current `guess` and the computed `update`.
 
@@ -186,14 +186,14 @@ opt = cspsa.SPSA(apply_update=clip_add)
 
 The `blocking` feature allows the optimizer to reject updates that do not improve over the last result. The parameter `blocking_tol` allows relaxing the acceptance criteria, which for minimization is
 ```
-new_value - old_value < blocking_tol * np.abs(old_value).
+f(x_new) - f(x_old) < blocking_tol * np.abs(f(x_old)).
 ```
 
-Example
+It is important to note that blocking increases the number of function evaluations by one per iteration.
+
+Example:
 
 ```python
 optimizer = cspsa.CSPSA(blocking=True, blocking_tol=1e-3)
 sol = optimizer.run(f, guess, num_iter=100)
 ```
-
-In this example, the optimizer will reject updates that do not improve the objective function by at least 0.1% of its current value.
