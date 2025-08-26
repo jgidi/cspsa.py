@@ -109,7 +109,7 @@ class CSPSA:
             self.function_eval_count += 1
 
             improvement = self.sign * (self._fx - current_value)
-            tolerance = - self.blocking_tol * np.abs(current_value)
+            tolerance = -self.blocking_tol * np.abs(current_value)
             reject = improvement < tolerance
 
             if reject:
@@ -174,7 +174,7 @@ class CSPSA:
             self.function_eval_count += 1
 
             improvement = self.sign * (self._fx - current_value)
-            tolerance = - self.blocking_tol * np.abs(current_value)
+            tolerance = -self.blocking_tol * np.abs(current_value)
             reject = improvement < tolerance
 
             if reject:
@@ -223,7 +223,7 @@ class CSPSA:
         self.fidelity_eval_count = 0
         self.rng = np.random.default_rng(self.seed)
         self.H = None
-        self._fx = - self.sign * np.finfo(float).max
+        self._fx = -self.sign * np.finfo(float).max
 
     def callback(self, iter, guess):
         # Invoke the user-defined callback and set the stop flag if needed
