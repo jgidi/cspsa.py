@@ -117,7 +117,7 @@ class CSPSA:
 
         return ak, bk
 
-    def default_hessian(self, guess) -> np.ndarray:
+    def _default_hessian(self, guess) -> np.ndarray:
         if self.scalar:
             return np.array([[1.0]])
         else:
@@ -187,7 +187,7 @@ class CSPSA:
         fidelity: Callable | None = None,
     ) -> np.ndarray:
         if self.H is None:
-            self.H = self.default_hessian(guess)
+            self.H = self._default_hessian(guess)
 
         update, hessian = self._preconditioned_update(
             fun, guess, fidelity
