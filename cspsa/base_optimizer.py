@@ -285,12 +285,11 @@ class CSPSA:
     ) -> float:
         # Use active perturbation size
         _, bk = self._stepsize_and_pert()
-        d = len(guess)
 
         # Compute gradient magnitudes
         mags = []
         for _ in range(num_samples // 2):
-            delta = self._sample_delta(bk, d)
+            delta = self._sample_delta(bk, guess.size)
             df = self._compute_difference(fun, guess, delta)
             mags.append(abs(df / bk))
 
@@ -298,6 +297,7 @@ class CSPSA:
         # and translate for the value of raw a
         ak = target_stepsize / np.median(mags)
         a = ak * (self.A + self.iter + 1) ** self.s
+        a = float(a)
 
         # Set the new value
         self.a = a
