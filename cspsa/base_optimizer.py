@@ -292,7 +292,6 @@ class CSPSA:
         for _ in range(num_samples // 2):
             delta = self._sample_delta(bk, d)
             df = self._compute_difference(fun, guess, delta)
-            self.function_eval_count += 2
             mags.append(abs(df / bk))
 
         # Compute absolute size ak for current iteration
