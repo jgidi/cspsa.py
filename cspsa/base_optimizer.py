@@ -280,15 +280,16 @@ class CSPSA:
         self,
         fun: Callable,
         guess: np.ndarray,
-        num_samples: int = 10,
+        num_samples: int = 20,
         target_stepsize: float = 1,
     ) -> float:
         # Use active perturbation size
         _, bk = self._stepsize_and_pert()
         d = len(guess)
 
+        # Compute gradient magnitudes
         mags = []
-        for _ in range(num_samples):
+        for _ in range(num_samples // 2):
             delta = self._sample_delta(bk, d)
             df = self._compute_difference(fun, guess, delta)
             self.function_eval_count += 2
