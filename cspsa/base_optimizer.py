@@ -106,9 +106,12 @@ class CSPSA:
         if self.blocking:
             current_value = self._fx
             self._fx = fun(new_guess)
-            self.function_eval_count += 1 
-            reject = (self.sign * (self._fx - current_value)
-                      < - self.blocking_tol * np.abs(current_value))
+            self.function_eval_count += 1
+
+            improvement = self.sign * (self._fx - current_value)
+            tolerance = - self.blocking_tol * np.abs(current_value)
+            reject = improvement < tolerance
+
             if reject:
                 new_guess = guess
                 self._fx = current_value
@@ -168,9 +171,12 @@ class CSPSA:
         if self.blocking:
             current_value = self._fx
             self._fx = fun(new_guess)
-            self.function_eval_count += 1 
-            reject = (self.sign * (self._fx - current_value)
-                      < - self.blocking_tol * np.abs(current_value))
+            self.function_eval_count += 1
+
+            improvement = self.sign * (self._fx - current_value)
+            tolerance = - self.blocking_tol * np.abs(current_value)
+            reject = improvement < tolerance
+
             if reject:
                 new_guess = guess
                 self._fx = current_value
