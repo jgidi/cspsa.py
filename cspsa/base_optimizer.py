@@ -294,10 +294,10 @@ class CSPSA:
             self.function_eval_count += 2
             mags.append(abs(df / bk))
 
-        # Calculate a0 based on the mean of magnitudes
-        # and set a for the current iteration
-        a0 = target_stepsize / np.mean(mags)
-        a = a0 * (self.A + self.iter + 1) ** self.s
+        # Compute absolute size ak for current iteration
+        # and translate for the value of raw a
+        ak = target_stepsize / np.mean(mags)
+        a = ak * (self.A + self.iter + 1) ** self.s
 
         # Set the new value
         self.a = a
