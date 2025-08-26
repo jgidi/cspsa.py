@@ -65,7 +65,7 @@ class CSPSA:
         assert not (self.second_order and self.quantum_natural), errmsg
 
         errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
-        assert not (self.scalar and not self.is_preconditioned), errmsg
+        assert not (self.scalar and not self.preconditioned), errmsg
 
     def callback(self, iter, guess):
         # Invoke the user-defined callback and set the stop flag if needed
@@ -84,7 +84,7 @@ class CSPSA:
         return params
 
     @property
-    def is_preconditioned(self) -> bool:
+    def preconditioned(self) -> bool:
         return self.second_order or self.quantum_natural
 
     @property
@@ -107,7 +107,7 @@ class CSPSA:
         s = self.s
         t = self.t
 
-        if self.is_preconditioned:
+        if self.preconditioned:
             a = self.a_precond
 
         ak = a / (self.iter + 1 + A) ** s
@@ -127,7 +127,7 @@ class CSPSA:
         guess: np.ndarray,
         fidelity: Callable | None = None,
     ) -> np.ndarray:
-        if not self.is_preconditioned:
+        if not self.preconditioned:
             return self._first_order_step(fun, guess)
         else:
             return self._preconditioned_step(fun, guess, fidelity)
@@ -145,7 +145,7 @@ class CSPSA:
         iterator = range(self.init_iter, self.init_iter + num_iter)
         iterator = tqdm(iterator, disable=not progressbar)
 
-        if not self.is_preconditioned:
+        if not self.preconditioned:
             for _ in iterator:
                 new_guess = self.step(fun, new_guess)
                 if self.stop:
