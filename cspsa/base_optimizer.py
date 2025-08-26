@@ -35,7 +35,7 @@ class CSPSA:
         hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
         seed: int | None = None,
         blocking: bool = False,
-        blocking_tol: float = 0.1,
+        blocking_tol: float = 0.0,
     ):
         self.a_precond = 1.0 if a is None else a
         self.a = DEFAULT_GAINS["a"] if a is None else a
@@ -55,7 +55,6 @@ class CSPSA:
         self.second_order = second_order
         self.quantum_natural = quantum_natural
         self.hessian_postprocess_method = hessian_postprocess_method
-        self.H = None
 
         # Blocking
         self.blocking = blocking
@@ -105,13 +104,14 @@ class CSPSA:
         new_guess = self.apply_update(guess, update)
 
         if self.blocking:
-            current_value = fun(guess)
-            new_value = fun(new_guess)
-            self.function_eval_count += 2 
-            reject = (self.sign * (new_value - current_value)
+            current_value = self._fx
+            self._fx = fun(new_guess)
+            self.function_eval_count += 1 
+            reject = (self.sign * (self._fx - current_value)
                       < - self.blocking_tol * np.abs(current_value))
             if reject:
                 new_guess = guess
+                self._fx = current_value
 
         self.iter += 1
         self.callback(self.iter, new_guess)
@@ -166,13 +166,14 @@ class CSPSA:
         new_guess = self.apply_update(guess, update)
 
         if self.blocking:
-            current_value = fun(guess)
-            new_value = fun(new_guess)
-            self.function_eval_count += 2 
-            reject = (self.sign * (new_value - current_value)
+            current_value = self._fx
+            self._fx = fun(new_guess)
+            self.function_eval_count += 1 
+            reject = (self.sign * (self._fx - current_value)
                       < - self.blocking_tol * np.abs(current_value))
             if reject:
                 new_guess = guess
+                self._fx = current_value
 
         self.iter += 1
         self.callback(self.iter, new_guess)
@@ -216,6 +217,7 @@ class CSPSA:
         self.fidelity_eval_count = 0
         self.rng = np.random.default_rng(self.seed)
         self.H = None
+        self._fx = - self.sign * np.finfo(float).max
 
     def callback(self, iter, guess):
         # Invoke the user-defined callback and set the stop flag if needed
