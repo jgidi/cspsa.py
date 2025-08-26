@@ -99,6 +99,8 @@ class CSPSA:
         self.rng = np.random.default_rng(self.seed)
         self.H = None
 
+    def _sample_delta(self, bk: float, size: int) -> np.ndarray:
+        return bk * self.rng.choice(self.perturbations, size)
 
     def _stepsize_and_pert(self):
         a = self.a
@@ -167,11 +169,9 @@ class CSPSA:
     def _first_order_step(self, fun: Callable, guess: np.ndarray) -> np.ndarray:
         ak, bk = self._stepsize_and_pert()
 
-        delta = bk * self.rng.choice(self.perturbations, len(guess))
-        df = fun(guess + delta) - fun(guess - delta)
-        self.function_eval_count += 2
-
-        update = self.sign * 0.5 * ak * df / delta.conj()
+        delta = self._sample_delta(bk, len(guess))
+        df = self._compute_difference(fun, guess, delta)
+        update = self.sign * ak * df / delta.conj()
         new_guess = self.apply_update(guess, update)
 
         self.iter += 1
@@ -201,6 +201,11 @@ class CSPSA:
 
         return new_guess
 
+    def _compute_difference(self, fun: Callable, guess: np.ndarray, delta: np.ndarray) -> float:
+        df = 0.5 * (fun(guess + delta) - fun(guess - delta))
+        self.function_eval_count += 2
+        return df
+
     def _preconditioned_update(
         self,
         fun: Callable,
@@ -209,27 +214,16 @@ class CSPSA:
     ) -> tuple[np.ndarray, np.ndarray]:
         ak, bk = self._stepsize_and_pert()
 
-        delta = bk * self.rng.choice(self.perturbations, len(guess))
-        delta2 = bk * self.rng.choice(self.perturbations, len(guess))
+        delta = self._sample_delta(bk, len(guess))
+        delta2 = self._sample_delta(bk, len(guess))
 
-        # First order
-        df = fun(guess + delta) - fun(guess - delta)
-        self.function_eval_count += 2
+        df = self._compute_difference(fun, guess, delta)
+        g = df / delta.conj()
 
-        # Gradient estimator
-        g = 0.5 * df / delta.conj()
-
-        # Second order
         if self.second_order:
-            dfp = fun(guess + delta + delta2) - fun(guess - delta + delta2)
-
-            self.function_eval_count += 2
-
-            # Hessian factor
-            h = 0.5 * (dfp - df)
-
-        # Quantum Natural
-        if self.quantum_natural:
+            dfp = self._compute_difference(fun, guess + delta2, delta)
+            h = dfp - df
+        else:
             errmsg = "For Quantum Natural optimization, you must provide the fidelity"
             assert fidelity is not None, errmsg
 
@@ -239,21 +233,16 @@ class CSPSA:
                 - fidelity(guess, guess + delta)
                 + fidelity(guess, guess - delta)
             )
-
             self.fidelity_eval_count += 4
-
-            # Hessian factor
             h = -0.25 * dF
 
         # Apply conditioning
         if self.scalar:
-            H = np.array([[h]])
+            H = np.array([[h / bk ** 2]])
         else:
             H = h / np.outer(delta.conj(), delta2)
 
-        H = self._hessian_postprocess(
-            self.H, H
-        )
+        H = self._hessian_postprocess(self.H, H)
         g = self.sign * ak * la.solve(H, g, assume_a="her")
 
         return g, H
