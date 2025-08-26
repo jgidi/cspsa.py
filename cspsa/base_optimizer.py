@@ -67,22 +67,20 @@ class CSPSA:
         errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
         assert not (self.scalar and not self.is_preconditioned), errmsg
 
-    # Minimal callback action: Check for returned value and set self.stop
-    def _callback(self, *args):
-        self.stop = self.outer_callback(*args) is not None
-
     def callback(self, iter, guess):
-        self._callback(iter, guess)
+        # Invoke the user-defined callback and set the stop flag if needed
+        self.stop = self.outer_callback(iter, guess) is not None
 
     def make_params_collector(self):
+        # Make a callback that collects parameters at each iteration
+        # and wraps the user-defined callback
         params = []
 
-        def wrapper(iter, guess):
+        def collector(iter, guess):
             params.append(guess)
-            self._callback(iter, guess)
+            self.stop = self.outer_callback(iter, guess) is not None
 
-        self.callback: Callable = wrapper
-
+        self.callback = collector
         return params
 
     @property
@@ -100,6 +98,7 @@ class CSPSA:
         self.fidelity_eval_count = 0
         self.rng = np.random.default_rng(self.seed)
         self.H = None
+
 
     def _stepsize_and_pert(self):
         a = self.a
