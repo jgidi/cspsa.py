@@ -59,45 +59,13 @@ class CSPSA:
         self.restart()
         self._check_args()
 
-    # TODO
+    # Private methods
     def _check_args(self):
         errmsg = "Can't set both 'second_order=True' and 'quantum_natural=True'"
         assert not (self.second_order and self.quantum_natural), errmsg
 
         errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
         assert not (self.scalar and not self.preconditioned), errmsg
-
-    def callback(self, iter, guess):
-        # Invoke the user-defined callback and set the stop flag if needed
-        self.stop = self.outer_callback(iter, guess) is not None
-
-    def make_params_collector(self):
-        # Make a callback that collects parameters at each iteration
-        # and wraps the user-defined callback
-        params = []
-
-        def collector(iter, guess):
-            params.append(guess)
-            self.stop = self.outer_callback(iter, guess) is not None
-
-        self.callback = collector
-        return params
-
-    @property
-    def preconditioned(self) -> bool:
-        return self.second_order or self.quantum_natural
-
-    @property
-    def iter_count(self):
-        return self.iter - self.init_iter
-
-    def restart(self):
-        self.stop = False
-        self.iter = self.init_iter
-        self.function_eval_count = 0
-        self.fidelity_eval_count = 0
-        self.rng = np.random.default_rng(self.seed)
-        self.H = None
 
     def _sample_delta(self, bk: float, size: int) -> np.ndarray:
         return bk * self.rng.choice(self.perturbations, size)
@@ -123,49 +91,6 @@ class CSPSA:
         else:
             return np.eye(len(guess))
 
-    def step(
-        self,
-        fun: Callable,
-        guess: np.ndarray,
-        fidelity: Callable | None = None,
-    ) -> np.ndarray:
-        if not self.preconditioned:
-            return self._first_order_step(fun, guess)
-        else:
-            return self._preconditioned_step(fun, guess, fidelity)
-
-    def run(
-        self,
-        fun: Callable,
-        guess: np.ndarray,
-        num_iter: int = DEFAULT_NUM_ITER,
-        progressbar: bool = False,
-        initial_hessian=None,
-        fidelity=None,
-    ) -> np.ndarray:
-        new_guess = np.copy(guess)
-        iterator = range(self.init_iter, self.init_iter + num_iter)
-        iterator = tqdm(iterator, disable=not progressbar)
-
-        if not self.preconditioned:
-            for _ in iterator:
-                new_guess = self.step(fun, new_guess)
-                if self.stop:
-                    break
-
-        # Preconditioning
-        else:
-            if initial_hessian is not None:
-                self.H = copy(initial_hessian)
-
-            for _ in iterator:
-                new_guess = self.step(fun, new_guess, fidelity=fidelity)
-                if self.stop:
-                    break
-
-        return new_guess
-
-    # =============== First order
     def _first_order_step(self, fun: Callable, guess: np.ndarray) -> np.ndarray:
         ak, bk = self._stepsize_and_pert()
 
@@ -179,7 +104,6 @@ class CSPSA:
 
         return new_guess
 
-    # =============== Preconditioning
     def _preconditioned_step(
         self,
         fun: Callable,
@@ -268,3 +192,78 @@ class CSPSA:
             raise ValueError(msg)
 
         return H
+
+    # Public methods
+    def restart(self):
+        self.stop = False
+        self.iter = self.init_iter
+        self.function_eval_count = 0
+        self.fidelity_eval_count = 0
+        self.rng = np.random.default_rng(self.seed)
+        self.H = None
+
+    def callback(self, iter, guess):
+        # Invoke the user-defined callback and set the stop flag if needed
+        self.stop = self.outer_callback(iter, guess) is not None
+
+    def make_params_collector(self):
+        # Make a callback that collects parameters at each iteration
+        # and wraps the user-defined callback
+        params = []
+
+        def collector(iter, guess):
+            params.append(guess)
+            self.stop = self.outer_callback(iter, guess) is not None
+
+        self.callback = collector
+        return params
+
+    @property
+    def preconditioned(self) -> bool:
+        return self.second_order or self.quantum_natural
+
+    @property
+    def iter_count(self):
+        return self.iter - self.init_iter
+
+    def step(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        fidelity: Callable | None = None,
+    ) -> np.ndarray:
+        if not self.preconditioned:
+            return self._first_order_step(fun, guess)
+        else:
+            return self._preconditioned_step(fun, guess, fidelity)
+
+    def run(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        num_iter: int = DEFAULT_NUM_ITER,
+        progressbar: bool = False,
+        initial_hessian=None,
+        fidelity=None,
+    ) -> np.ndarray:
+        new_guess = np.copy(guess)
+        iterator = range(self.init_iter, self.init_iter + num_iter)
+        iterator = tqdm(iterator, disable=not progressbar)
+
+        if not self.preconditioned:
+            for _ in iterator:
+                new_guess = self.step(fun, new_guess)
+                if self.stop:
+                    break
+
+        # Preconditioning
+        else:
+            if initial_hessian is not None:
+                self.H = copy(initial_hessian)
+
+            for _ in iterator:
+                new_guess = self.step(fun, new_guess, fidelity=fidelity)
+                if self.stop:
+                    break
+
+        return new_guess
