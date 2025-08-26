@@ -47,7 +47,6 @@ class CSPSA:
         self.perturbations = perturbations
         self.outer_callback = callback
         self.seed = seed
-        self.rng = np.random.default_rng(seed)
 
         # Preconditioning
         self.scalar = scalar
