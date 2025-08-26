@@ -266,3 +266,41 @@ class CSPSA:
                     break
 
         return new_guess
+
+    def calibrate_b(self, fun, guess, num_samples=10):
+        meas = [fun(guess) for _ in range(num_samples)]
+        self.function_eval_count += num_samples
+
+        b = max(float(np.std(meas)), 1e-3)
+
+        self.b = b
+        return b
+
+    def calibrate_a(
+        self,
+        fun: Callable,
+        guess: np.ndarray,
+        num_samples: int = 10,
+        target_stepsize: float = 1,
+    ) -> float:
+        # Use active perturbation size
+        _, bk = self._stepsize_and_pert()
+        d = len(guess)
+
+        mags = []
+        for _ in range(num_samples):
+            delta = self._sample_delta(bk, d)
+            df = self._compute_difference(fun, guess, delta)
+            self.function_eval_count += 2
+            mags.append(abs(df / bk))
+
+        # Calculate a0 based on the mean of magnitudes
+        # and set a for the current iteration
+        a0 = target_stepsize / np.mean(mags)
+        a = a0 * (self.A + self.iter + 1) ** self.s
+
+        # Set the new value
+        self.a = a
+        self.a_precond = a
+
+        return a
