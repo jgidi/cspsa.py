@@ -99,8 +99,9 @@ class CSPSA:
         ak, bk = self._stepsize_and_pert()
 
         delta = self._sample_delta(bk, len(guess))
-        df = self._compute_difference(fun, guess, delta)
-        update = self.sign * ak * df / delta.conj()
+        fp, fm = fun(guess + delta), fun(guess - delta)
+        self.function_eval_count += 2
+        update = self.sign * ak * 0.5 * (fp - fm) / delta.conj()
         new_guess = self.apply_update(guess, update)
 
         if self.blocking:
@@ -135,11 +136,14 @@ class CSPSA:
         delta = self._sample_delta(bk, len(guess))
         delta2 = self._sample_delta(bk, len(guess))
 
-        df = self._compute_difference(fun, guess, delta)
+        fp, fm = fun(guess + delta), fun(guess - delta)
+        self.function_eval_count += 2
+        df = 0.5 * (fp - fm)
         g = df / delta.conj()
 
         if self.second_order:
-            dfp = self._compute_difference(fun, guess + delta2, delta)
+            dfp = 0.5 * (fun(guess + delta2 + delta) - fun(guess + delta2 - delta))
+            self.function_eval_count += 2
             h = dfp - df
         else:
             errmsg = "For Quantum Natural optimization, you must provide the fidelity"
@@ -185,13 +189,6 @@ class CSPSA:
         self.callback(self.iter, new_guess)
 
         return new_guess
-
-    def _compute_difference(
-        self, fun: Callable, guess: np.ndarray, delta: np.ndarray
-    ) -> float:
-        df = 0.5 * (fun(guess + delta) - fun(guess - delta))
-        self.function_eval_count += 2
-        return df
 
     def _hessian_postprocess(
         self,
@@ -314,7 +311,8 @@ class CSPSA:
         mags = []
         for _ in range(num_samples // 2):
             delta = self._sample_delta(bk, guess.size)
-            df = self._compute_difference(fun, guess, delta)
+            df = 0.5 * (fun(guess + delta) - fun(guess - delta))
+            self.function_eval_count += 2
             mags.append(abs(df / bk))
 
         # Compute absolute size ak for current iteration
