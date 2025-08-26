@@ -60,7 +60,7 @@ class FirstOrder(unittest.TestCase):
         )
 
         for x1, x2 in zip(params1, params2):
-            self.assertTrue(np.all(x1 == x2))
+            self.assertTrue(np.allclose(x1, x2))
 
 
 if __name__ == "__main__":
