@@ -34,6 +34,8 @@ class CSPSA:
         quantum_natural: bool = False,
         hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
         seed: int | None = None,
+        blocking: bool = False,
+        blocking_tol: float = 0.1,
     ):
         self.a_precond = 1.0 if a is None else a
         self.a = DEFAULT_GAINS["a"] if a is None else a
@@ -54,6 +56,10 @@ class CSPSA:
         self.quantum_natural = quantum_natural
         self.hessian_postprocess_method = hessian_postprocess_method
         self.H = None
+
+        # Blocking
+        self.blocking = blocking
+        self.blocking_tol = blocking_tol
 
         self.restart()
         self._check_args()
@@ -97,6 +103,15 @@ class CSPSA:
         df = self._compute_difference(fun, guess, delta)
         update = self.sign * ak * df / delta.conj()
         new_guess = self.apply_update(guess, update)
+
+        if self.blocking:
+            current_value = fun(guess)
+            new_value = fun(new_guess)
+            self.function_eval_count += 2 
+            reject = (self.sign * (new_value - current_value)
+                      < - self.blocking_tol * np.abs(current_value))
+            if reject:
+                new_guess = guess
 
         self.iter += 1
         self.callback(self.iter, new_guess)
@@ -149,6 +164,16 @@ class CSPSA:
 
         # Make the step
         new_guess = self.apply_update(guess, update)
+
+        if self.blocking:
+            current_value = fun(guess)
+            new_value = fun(new_guess)
+            self.function_eval_count += 2 
+            reject = (self.sign * (new_value - current_value)
+                      < - self.blocking_tol * np.abs(current_value))
+            if reject:
+                new_guess = guess
+
         self.iter += 1
         self.callback(self.iter, new_guess)
 
