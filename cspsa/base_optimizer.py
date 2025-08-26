@@ -296,7 +296,7 @@ class CSPSA:
 
         # Compute absolute size ak for current iteration
         # and translate for the value of raw a
-        ak = target_stepsize / np.mean(mags)
+        ak = target_stepsize / np.median(mags)
         a = ak * (self.A + self.iter + 1) ** self.s
 
         # Set the new value
