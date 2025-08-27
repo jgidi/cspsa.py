@@ -105,6 +105,10 @@ class CSPSA:
         new_guess = self.apply_update(guess, update)
 
         if self.blocking:
+            if self._fx is None:
+                self._fx = fun(guess)
+                self.function_eval_count += 1
+                
             current_value = self._fx
             self._fx = fun(new_guess)
             self.function_eval_count += 1
@@ -173,6 +177,10 @@ class CSPSA:
         new_guess = self.apply_update(guess, update)
 
         if self.blocking:
+            if self._fx is None:
+                self._fx = fun(guess)
+                self.function_eval_count += 1
+
             current_value = self._fx
             self._fx = fun(new_guess)
             self.function_eval_count += 1
@@ -220,7 +228,7 @@ class CSPSA:
         self.fidelity_eval_count = 0
         self.rng = np.random.default_rng(self.seed)
         self.H = None
-        self._fx = -self.sign * np.finfo(float).max
+        self._fx = None
 
     def callback(self, iter, guess):
         # Invoke the user-defined callback and set the stop flag if needed
