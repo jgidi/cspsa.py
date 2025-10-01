@@ -15,10 +15,17 @@ def naive_first_order(
     perturbations=DEFAULT_COMPLEX_PERTURBATIONS,
     gains=DEFAULT_GAINS,
     accumulate=False,
-    seed=None,
+    rng=None,
 ):
     params = np.copy(guess)
-    rng = np.random.default_rng(seed)
+    if rng is not None and not isinstance(rng, np.random.Generator):
+        raise TypeError("rng must be a numpy.random.Generator or None")
+    if rng is None:
+        rng = np.random.default_rng()
+    else:
+        rng_state = rng.__getstate__()
+        rng = np.random.default_rng()
+        rng.__setstate__(rng_state)  # Copy the state
 
     if accumulate:
         acc = []

@@ -33,7 +33,7 @@ class CSPSA:
         second_order: bool = False,
         quantum_natural: bool = False,
         hessian_postprocess_method: str = DEFAULT_HESSIAN_POSTPROCESS_METHOD,
-        seed: int | None = None,
+        rng: np.random.Generator | None = None,
         blocking: bool = False,
         blocking_tol: float = 0.0,
     ):
@@ -48,7 +48,8 @@ class CSPSA:
         self.apply_update = apply_update
         self.perturbations = perturbations
         self.outer_callback = callback
-        self.seed = seed
+        self.rng_param = rng
+        self.rng_init_state = rng.__getstate__() if rng is not None else None
 
         # Preconditioning
         self.scalar = scalar
@@ -70,6 +71,9 @@ class CSPSA:
 
         errmsg = "Can't set 'scalar=True' if not using second_order or quantum_natural"
         assert not (self.scalar and not self.preconditioned), errmsg
+
+        if self.rng_param is not None and not isinstance(self.rng_param, np.random.Generator):
+            raise TypeError("rng must be a numpy.random.Generator or None")
 
     def _sample_delta(self, bk: float, size: int) -> np.ndarray:
         return bk * self.rng.choice(self.perturbations, size)
@@ -226,7 +230,11 @@ class CSPSA:
         self.iter = self.init_iter
         self.function_eval_count = 0
         self.fidelity_eval_count = 0
-        self.rng = np.random.default_rng(self.seed)
+        if self.rng_init_state is None:
+            self.rng = np.random.default_rng()
+        else:
+            self.rng = np.random.default_rng()
+            self.rng.__setstate__(self.rng_init_state)
         self.H = None
         self._fx = None
 
